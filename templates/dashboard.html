@@ -1,0 +1,455 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+{# ── Stat Cards ───────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="0">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                    <span class="material-icons" style="color:#3b82f6;">inventory_2</span>
+                </div>
+                <span class="stat-delta text-success">
+                    <span class="material-icons" style="font-size:14px;vertical-align:middle;">arrow_upward</span>
+                    {{ received_today }}
+                </span>
+            </div>
+            <div class="stat-value">{{ total_items }}</div>
+            <div class="stat-label">Total Items</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="50">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                    <span class="material-icons" style="color:#22c55e;">warehouse</span>
+                </div>
+            </div>
+            <div class="stat-value">{{ total_warehouses }}</div>
+            <div class="stat-label">Warehouses</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(139,92,246,.12);">
+                    <span class="material-icons" style="color:#8b5cf6;">payments</span>
+                </div>
+            </div>
+            <div class="stat-value" style="font-size:1.2rem;">
+                MWK {{ stock_value|floatformat:0 }}
+            </div>
+            <div class="stat-label">Stock Value</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="150">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                    <span class="material-icons" style="color:#ef4444;">warning</span>
+                </div>
+            </div>
+            <div class="stat-value" style="color:{% if low_stock_count > 0 %}#ef4444{% endif %};">
+                {{ low_stock_count }}
+            </div>
+            <div class="stat-label">Low Stock</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                    <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
+                </div>
+            </div>
+            <div class="stat-value" style="color:{% if pending_approvals > 0 %}#f59e0b{% endif %};">
+                {{ pending_approvals }}
+            </div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="250">
+        <div class="stat-card">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <div class="stat-icon" style="background:rgba(14,165,233,.12);">
+                    <span class="material-icons" style="color:#0ea5e9;">construction</span>
+                </div>
+            </div>
+            <div class="stat-value">{{ active_projects }}</div>
+            <div class="stat-label">Projects</div>
+        </div>
+    </div>
+
+</div>
+
+{# ── Today Activity Bar ────────────────────────────────── #}
+<div class="wms-card mb-4" data-aos="fade-up">
+    <div class="wms-card-body py-3">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md-3">
+                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">
+                    Received Today
+                </div>
+                <div style="font-size:1.4rem;font-weight:800;color:#22c55e;">
+                    {{ received_today }}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">
+                    Issued Today
+                </div>
+                <div style="font-size:1.4rem;font-weight:800;color:#ef4444;">
+                    {{ issued_today }}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">
+                    Open POs
+                </div>
+                <div style="font-size:1.4rem;font-weight:800;color:#3b82f6;">
+                    {{ pending_orders }}
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;
+                            letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">
+                    Maintenance Due
+                </div>
+                <div style="font-size:1.4rem;font-weight:800;
+                            color:{% if assets_due_maintenance > 0 %}#f59e0b{% else %}var(--text-primary){% endif %};">
+                    {{ assets_due_maintenance }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ─── Two‑Column Layout ─────────────────────────────────── #}
+<div class="row g-4">
+
+    {# ─── Left: Stock Movement Chart ───────────────────── #}
+    <div class="col-12 col-xl-7" data-aos="fade-up">
+        <div class="wms-card h-100">
+            <div class="wms-card-header">
+                <h6>Stock Movement — Last 7 Days</h6>
+                <a href="{% url 'reports:movements' %}"
+                   class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">
+                    View All
+                </a>
+            </div>
+            <div class="wms-card-body">
+                <canvas id="movementChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    {# ─── Right Column ────────────────────────────────── #}
+    <div class="col-12 col-xl-5" data-aos="fade-up" data-aos-delay="100">
+
+        {# ── Low Stock Alerts ─────────────────────────── #}
+        <div class="wms-card mb-4">
+            <div class="wms-card-header">
+                <h6>
+                    <span class="material-icons"
+                          style="font-size:16px;vertical-align:middle;
+                                 color:#ef4444;margin-right:.25rem;">
+                        warning
+                    </span>
+                    Low Stock Alerts
+                </h6>
+                <a href="{% url 'inventory:stock-list' %}?low_stock=1"
+                   class="btn-wms-secondary" style="font-size:.72rem;padding:.25rem .65rem;">
+                    View All
+                </a>
+            </div>
+            {% if low_stock_items %}
+            <div>
+                {% for stock in low_stock_items %}
+                <div class="d-flex align-items-center justify-content-between
+                            px-3 py-2"
+                     style="border-bottom:1px solid var(--border-subtle);">
+                    <div>
+                        <div style="font-size:.82rem;font-weight:600;
+                                    color:var(--text-primary);">
+                            {{ stock.item.name|truncatechars:30 }}
+                        </div>
+                        <div style="font-size:.72rem;color:var(--text-muted);">
+                            {{ stock.warehouse.name }}
+                        </div>
+                    </div>
+                    <div class="text-end">
+                        <div style="font-size:.875rem;font-weight:800;color:#ef4444;">
+                            {{ stock.quantity }} {{ stock.item.unit.symbol }}
+                        </div>
+                        <div style="font-size:.68rem;color:var(--text-muted);">
+                            Min: {{ stock.item.minimum_stock }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state" style="padding:1.5rem;">
+                <span class="material-icons empty-icon" style="color:#22c55e;font-size:2rem;opacity:1;">
+                    check_circle
+                </span>
+                <p style="margin:0;font-size:.82rem;">All stock levels healthy</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ── Quick Actions ────────────────────────────── #}
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Quick Actions</h6>
+            </div>
+            <div class="wms-card-body">
+                <div class="row g-2">
+                    {% if perms.inventory.receive_stock %}
+                    <div class="col-6">
+                        <a href="{% url 'inventory:stock-receive' %}"
+                           class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms
+                                  text-decoration-none"
+                           style="background:rgba(34,197,94,.08);
+                                  border:1px solid rgba(34,197,94,.2);
+                                  transition:var(--transition);"
+                           onmouseover="this.style.background='rgba(34,197,94,.15)'"
+                           onmouseout="this.style.background='rgba(34,197,94,.08)'">
+                            <span class="material-icons" style="color:#22c55e;font-size:22px;">
+                                move_to_inbox
+                            </span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">
+                                Receive Stock
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if perms.inventory.issue_stock %}
+                    <div class="col-6">
+                        <a href="{% url 'inventory:stock-issue' %}"
+                           class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms
+                                  text-decoration-none"
+                           style="background:rgba(239,68,68,.08);
+                                  border:1px solid rgba(239,68,68,.2);
+                                  transition:var(--transition);"
+                           onmouseover="this.style.background='rgba(239,68,68,.15)'"
+                           onmouseout="this.style.background='rgba(239,68,68,.08)'">
+                            <span class="material-icons" style="color:#ef4444;font-size:22px;">
+                                outbox
+                            </span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">
+                                Issue Stock
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if perms.procurement.add_purchaserequest %}
+                    <div class="col-6">
+                        <a href="{% url 'procurement:pr-create' %}"
+                           class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms
+                                  text-decoration-none"
+                           style="background:rgba(59,130,246,.08);
+                                  border:1px solid rgba(59,130,246,.2);
+                                  transition:var(--transition);"
+                           onmouseover="this.style.background='rgba(59,130,246,.15)'"
+                           onmouseout="this.style.background='rgba(59,130,246,.08)'">
+                            <span class="material-icons" style="color:#3b82f6;font-size:22px;">
+                                request_page
+                            </span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">
+                                Purchase Req.
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    {% if perms.operations.add_materialrequest %}
+                    <div class="col-6">
+                        <a href="{% url 'operations:mr-create' %}"
+                           class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms
+                                  text-decoration-none"
+                           style="background:rgba(245,158,11,.08);
+                                  border:1px solid rgba(245,158,11,.2);
+                                  transition:var(--transition);"
+                           onmouseover="this.style.background='rgba(245,158,11,.15)'"
+                           onmouseout="this.style.background='rgba(245,158,11,.08)'">
+                            <span class="material-icons" style="color:#f59e0b;font-size:22px;">
+                                handyman
+                            </span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">
+                                Material Req.
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{# ─── Recent Movements Table ────────────────────────────── #}
+<div class="wms-card mt-4" data-aos="fade-up">
+    <div class="wms-card-header">
+        <h6>Recent Stock Movements</h6>
+        <a href="{% url 'inventory:movement-list' %}"
+           class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">
+            View All
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Quantity</th>
+                    <th>Warehouse</th>
+                    <th>By</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in recent_movements %}
+                <tr>
+                    <td>
+                        <span style="font-weight:600;color:var(--text-primary);">
+                            {{ m.item.name|truncatechars:32 }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="wms-badge
+                            {% if m.movement_type == 'IN' %}badge-success
+                            {% elif m.movement_type == 'OUT' %}badge-danger
+                            {% elif m.movement_type == 'TRANSFER' %}badge-info
+                            {% else %}badge-neutral{% endif %}">
+                            {{ m.movement_type }}
+                        </span>
+                    </td>
+                    <td style="font-weight:700;">{{ m.quantity }}</td>
+                    <td style="color:var(--text-secondary);">{{ m.warehouse.name }}</td>
+                    <td style="color:var(--text-muted);">{{ m.created_by.username }}</td>
+                    <td style="color:var(--text-muted);font-size:.78rem;">
+                        {{ m.created_at|date:"d M H:i" }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">swap_horiz</span>
+                            <h6>No movements yet</h6>
+                            <p>Stock movements will appear here</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Stock Movement Chart ──────────────────────────────
+(function() {
+    const ctx = document.getElementById('movementChart');
+    if (!ctx) return;
+
+    // Safely get data from Django context (with fallbacks)
+    const chartIn  = {{ movement_chart_in|default:"[0,0,0,0,0,0,0]"|safe }};
+    const chartOut = {{ movement_chart_out|default:"[0,0,0,0,0,0,0]"|safe }};
+
+    // Detect dark mode from the HTML class
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
+    const textColor = isDark ? '#64748b' : '#94a3b8';
+
+    // Generate last 7 day labels
+    const labels = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+    }
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Stock In',
+                    data: chartIn,
+                    backgroundColor: 'rgba(34,197,94,.7)',
+                    borderRadius: 5,
+                    borderSkipped: false,
+                },
+                {
+                    label: 'Stock Out',
+                    data: chartOut,
+                    backgroundColor: 'rgba(239,68,68,.7)',
+                    borderRadius: 5,
+                    borderSkipped: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: textColor,
+                        font: { size: 11, family: 'Inter' },
+                        boxWidth: 10,
+                        padding: 16,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: isDark ? '#1e293b' : '#fff',
+                    titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                    bodyColor: isDark ? '#94a3b8' : '#64748b',
+                    borderColor: isDark ? '#334155' : '#e2e8f0',
+                    borderWidth: 1,
+                    padding: 10,
+                    cornerRadius: 8,
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textColor, font: { size: 10 } },
+                },
+                y: {
+                    grid: { color: gridColor },
+                    ticks: {
+                        color: textColor,
+                        font: { size: 10 },
+                        maxTicksLimit: 5,
+                    },
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endblock %}

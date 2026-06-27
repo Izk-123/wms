@@ -1,0 +1,16 @@
+{# ======================================================================== #}
+{# CARD HEADER — Shared header for list pages with Add button              #}
+{# Uses design tokens for dark/light mode support                          #}
+{# ======================================================================== #}
+
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ page_title }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:0.85rem;">{{ page_subtitle }}</p>
+    </div>
+    {% if add_url %}
+    <a href="{{ add_url }}" class="btn-wms-primary" style="font-size:.78rem;padding:.4rem 1rem;">
+        <span class="material-icons" style="font-size:18px;">add</span> {{ add_label }}
+    </a>
+    {% endif %}
+</div>

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}{{ warehouse.name }}{% endblock %}
+{% block page_title %}Warehouse Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'inventory:warehouse-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <h5 class="fw-semibold mb-0 text-primary-wms">{{ warehouse.name }}</h5>
+    <span class="wms-badge {% if warehouse.is_active %}badge-success{% else %}badge-danger{% endif %}">
+        {% if warehouse.is_active %}Active{% else %}Inactive{% endif %}
+    </span>
+    <a href="{% url 'inventory:warehouse-update' warehouse.pk %}" class="btn-wms-primary ms-auto" style="font-size:.78rem;padding:.3rem .8rem;">
+        <span class="material-icons me-1" style="font-size:16px; vertical-align:middle;">edit</span> Edit
+    </a>
+</div>
+
+<div class="row g-3 fade-in">
+
+    <!-- Info -->
+    <div class="col-12 col-lg-4">
+        <div class="wms-card h-100">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Location</h6>
+                <p class="text-secondary-wms">{{ warehouse.location|default:"Not specified" }}</p>
+                <hr class="border-wms">
+                <h6 class="fw-semibold text-primary-wms">Description</h6>
+                <p class="text-secondary-wms">{{ warehouse.description|default:"No description" }}</p>
+                <hr class="border-wms">
+                <p class="text-secondary-wms" style="font-size:0.85rem;">
+                    <span class="material-icons" style="font-size:16px; vertical-align:middle;">calendar_today</span>
+                    Created: {{ warehouse.created_at|date:"d M Y H:i" }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Items -->
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Stock in this Warehouse</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>SKU</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in stocks %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'inventory:item-detail' stock.item.pk %}" class="text-primary-wms text-decoration-none">
+                                    {{ stock.item.name }}
+                                </a>
+                            </td>
+                            <td><span class="wms-badge badge-neutral">{{ stock.item.sku }}</span></td>
+                            <td>{{ stock.quantity }}</td>
+                            <td>{{ stock.item.unit.symbol }}</td>
+                            <td>
+                                {% if stock.is_low_stock %}
+                                <span class="wms-badge badge-danger">Low Stock</span>
+                                {% else %}
+                                <span class="wms-badge badge-success">OK</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No stock records for this warehouse.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

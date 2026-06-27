@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Edit Maintenance Record{% else %}Log Maintenance{% endif %}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Maintenance Record{% else %}Log Maintenance{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-8">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'assets:asset-detail' asset.pk %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <div>
+                <h5 class="fw-semibold mb-0 text-primary-wms">
+                    {% if form.instance.pk %}Edit Maintenance Record{% else %}Log Maintenance{% endif %}
+                </h5>
+                <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+                    For {{ asset.name }} ({{ asset.asset_number }})
+                </p>
+            </div>
+        </div>
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Maintenance Type <span class="text-danger">*</span></label>
+                            {{ form.maintenance_type }}
+                            {% if form.maintenance_type.errors %}
+                            <div class="text-danger" style="font-size:0.8rem;">{{ form.maintenance_type.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Status <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Scheduled Date <span class="text-danger">*</span></label>
+                            {{ form.scheduled_date }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Completion Date</label>
+                            {{ form.completed_date }}
+                            <div class="text-muted-wms" style="font-size:.78rem;">Leave blank if not completed.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label-wms">Description <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Performed By</label>
+                            {{ form.performed_by }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Cost (MWK)</label>
+                            {{ form.cost }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label-wms">Next Maintenance Date</label>
+                            {{ form.next_maintenance_date }}
+                            <div class="text-muted-wms" style="font-size:.78rem;">If set, this will update the asset's maintenance schedule.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            {% if form.instance.pk %}Save Changes{% else %}Log Maintenance{% endif %}
+                        </button>
+                        <a href="{% url 'assets:asset-detail' asset.pk %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

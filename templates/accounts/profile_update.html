@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Edit Profile{% endblock %}
+{% block page_title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-6">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'accounts:profile' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <h5 class="fw-semibold mb-0 text-primary-wms">Edit Profile</h5>
+        </div>
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">First Name <span class="text-danger">*</span></label>
+                            {{ form.first_name }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Last Name <span class="text-danger">*</span></label>
+                            {{ form.last_name }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label-wms">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            Save Changes
+                        </button>
+                        <a href="{% url 'accounts:profile' %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

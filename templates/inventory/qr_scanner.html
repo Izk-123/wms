@@ -1,0 +1,138 @@
+{# ======================================================================== #}
+{# QR SCANNER — Mobile-friendly QR code scanner using html5-qrcode         #}
+{# Fully responsive with dark/light mode support                          #}
+{# ======================================================================== #}
+
+{% extends 'base.html' %}
+
+{% block title %}QR Scanner{% endblock %}
+{% block page_title %}QR Code Scanner{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-md-8 col-lg-6">
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold mb-1 text-primary-wms">Scan Item QR Code</h6>
+                <p class="text-secondary-wms mb-3" style="font-size:.85rem;">
+                    Point your camera at any J&N item QR code to look it up instantly.
+                </p>
+
+                <!-- Scanner Box -->
+                <div id="reader"
+                     style="width:100%;border-radius:var(--radius-md);
+                            overflow:hidden;border:2px solid var(--border);
+                            background:var(--surface-2);">
+                    <!-- Scanner will be injected here -->
+                </div>
+
+                <!-- Manual SKU fallback -->
+                <div class="mt-3 pt-3 border-top border-wms">
+                    <p class="text-secondary-wms mb-2" style="font-size:.82rem;">
+                        Or enter SKU manually:
+                    </p>
+                    <form action="{% url 'inventory:qr-lookup' %}" method="get"
+                          class="d-flex gap-2">
+                        <input type="text" name="sku"
+                               class="form-control-wms"
+                               placeholder="e.g. CEM-001"
+                               autofocus
+                               style="flex:1;">
+                        <button type="submit" class="btn-wms-primary" style="white-space:nowrap;">
+                            <span class="material-icons" style="font-size:18px;vertical-align:middle;">search</span>
+                            Search
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Result area -->
+                <div id="scan-result" class="mt-3" style="display:none;">
+                    <div class="wms-alert wms-alert-success mb-0" style="font-size:.875rem;">
+                        <span class="material-icons me-1" style="font-size:18px;flex-shrink:0;">
+                            check_circle
+                        </span>
+                        <span id="result-text"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- html5-qrcode library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+    (function() {
+        const readerElement = document.getElementById('reader');
+        if (!readerElement) return;
+
+        const html5QrCode = new Html5Qrcode("reader");
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+        };
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Show result
+            const resultDiv = document.getElementById('scan-result');
+            const resultText = document.getElementById('result-text');
+            if (resultDiv && resultText) {
+                resultDiv.style.display = 'block';
+                resultText.textContent = 'Scanned: ' + decodedText + ' — redirecting...';
+            }
+
+            // Stop scanner
+            html5QrCode.stop().then(() => {
+                const url = "{% url 'inventory:qr-lookup' %}?data=" +
+                            encodeURIComponent(decodedText);
+                window.location.href = url;
+            });
+        }
+
+        function onScanFailure(error) {
+            // Silently ignore scan failures
+        }
+
+        // Start camera
+        Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length) {
+                // Prefer back camera on mobile (last in list is usually back)
+                const cameraId = devices[devices.length - 1].id;
+                html5QrCode.start(
+                    cameraId,
+                    config,
+                    onScanSuccess,
+                    onScanFailure
+                );
+            } else {
+                // No camera found
+                readerElement.innerHTML = `
+                    <div class="empty-state" style="padding:2rem;">
+                        <span class="material-icons empty-icon" style="font-size:2.5rem;">no_photography</span>
+                        <h6>Camera not available</h6>
+                        <p style="font-size:.82rem;">Use the manual SKU search below.</p>
+                    </div>
+                `;
+            }
+        }).catch(err => {
+            // Camera permission denied or other error
+            readerElement.innerHTML = `
+                <div class="empty-state" style="padding:2rem;">
+                    <span class="material-icons empty-icon" style="font-size:2.5rem;">no_photography</span>
+                    <h6>Camera access denied</h6>
+                    <p style="font-size:.82rem;">Please allow camera access or use the manual SKU search below.</p>
+                </div>
+            `;
+        });
+    })();
+</script>
+{% endblock %}

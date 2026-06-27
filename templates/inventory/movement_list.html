@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Stock Movements{% endblock %}
+{% block page_title %}Stock Movements{% endblock %}
+
+{% block content %}
+
+{% include 'inventory/_card_header.html' with page_title="Stock Movements" page_subtitle="All inventory transactions" add_url=None add_label=None %}
+
+{# ── Stylish Filter Bar ────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+
+        {# Search input with icon #}
+        <div class="col-12 col-md-5">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by item or reference..."
+                       hx-get="{% url 'inventory:movement-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#movement-table"
+                       hx-include="[name='type']">
+            </div>
+        </div>
+
+        {# Type filter #}
+        <div class="col-6 col-md-3">
+            <select name="type" class="form-select-wms"
+                    hx-get="{% url 'inventory:movement-list' %}"
+                    hx-trigger="change"
+                    hx-target="#movement-table"
+                    hx-include="[name='q']">
+                <option value="">All Types</option>
+                {% for val, label in movement_types %}
+                <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Action buttons #}
+        <div class="col-12 col-md-4 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span>
+                Filter
+            </button>
+            <a href="{% url 'inventory:movement-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span>
+                Clear
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{# ── Table ───────────────────────────────────────────── #}
+<div class="wms-card" id="movement-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Quantity</th>
+                    <th>Warehouse</th>
+                    <th>Reference</th>
+                    <th>By</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for movement in movements %}
+                <tr>
+                    <td>
+                        <a href="{% url 'inventory:item-detail' movement.item.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ movement.item.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="wms-badge
+                            {% if movement.movement_type == 'IN' %}badge-success
+                            {% elif movement.movement_type == 'OUT' %}badge-danger
+                            {% elif movement.movement_type == 'TRANSFER' %}badge-info
+                            {% else %}badge-neutral{% endif %}">
+                            {{ movement.movement_type }}
+                        </span>
+                    </td>
+                    <td>{{ movement.quantity }}</td>
+                    <td>{{ movement.warehouse.name }}</td>
+                    <td>{{ movement.reference|default:"—" }}</td>
+                    <td>{{ movement.created_by.username }}</td>
+                    <td style="color:var(--text-muted);">{{ movement.created_at|date:"d M Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">swap_horiz</span>
+                            <h6>No movements found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&type={{ selected_type }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&type={{ selected_type }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

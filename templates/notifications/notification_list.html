@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <h5 class="fw-semibold mb-0">All Notifications</h5>
+    {% if notifications %}
+    <button class="btn btn-sm btn-outline-secondary"
+            hx-post="{% url 'notifications:mark-all-read' %}"
+            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            hx-on::after-request="window.location.reload()">
+        <span class="material-icons me-1"
+              style="font-size:16px;vertical-align:middle;">
+            done_all
+        </span>
+        Mark All Read
+    </button>
+    {% endif %}
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        {% for n in notifications %}
+        <div class="d-flex gap-3 px-4 py-3
+                    {% if not n.is_read %}
+                        border-start border-3 border-primary
+                    {% endif %}"
+             style="border-bottom:1px solid #f1f5f9;
+                    {% if not n.is_read %}background:#fafcff;{% endif %}">
+
+            <div style="flex-shrink:0;margin-top:3px;">
+                <span class="material-icons"
+                      style="font-size:22px;
+                             {% if n.level == 'danger' %}color:#ef4444;
+                             {% elif n.level == 'warning' %}color:#f59e0b;
+                             {% elif n.level == 'success' %}color:#22c55e;
+                             {% else %}color:#3b82f6;{% endif %}">
+                    {% if n.notification_type == 'low_stock' %}warning
+                    {% elif n.notification_type == 'approval_required' %}pending_actions
+                    {% elif n.notification_type == 'approved' %}check_circle
+                    {% elif n.notification_type == 'rejected' %}cancel
+                    {% elif n.notification_type == 'goods_received' %}move_to_inbox
+                    {% else %}notifications{% endif %}
+                </span>
+            </div>
+
+            <div style="flex:1;">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="fw-semibold"
+                             style="font-size:.875rem;">
+                            {{ n.title }}
+                            {% if not n.is_read %}
+                            <span class="badge bg-primary ms-1"
+                                  style="font-size:.65rem;">New</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-secondary mt-1"
+                             style="font-size:.85rem;">
+                            {{ n.message }}
+                        </div>
+                    </div>
+                    <div class="text-secondary ms-3"
+                         style="font-size:.78rem;white-space:nowrap;">
+                        {{ n.created_at|date:"d M Y H:i" }}
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-2">
+                    {% if n.url %}
+                    <a href="{{ n.url }}"
+                       class="btn btn-sm btn-outline-primary"
+                       style="font-size:.78rem;">
+                        View
+                    </a>
+                    {% endif %}
+                    {% if not n.is_read %}
+                    <button class="btn btn-sm btn-outline-secondary"
+                            style="font-size:.78rem;"
+                            hx-post="{% url 'notifications:mark-read' n.pk %}"
+                            hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                            hx-on::after-request="this.closest('.d-flex.gap-3').style.background=''">
+                        Mark Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="text-center text-secondary py-5">
+            <span class="material-icons d-block mb-2"
+                  style="font-size:48px;color:#cbd5e1;">
+                notifications_none
+            </span>
+            No notifications yet.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if is_paginated %}
+<div class="d-flex justify-content-center py-3">
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.previous_page_number }}">«</a>
+            </li>
+            {% endif %}
+            <li class="page-item active">
+                <span class="page-link">
+                    {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+            </li>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.next_page_number }}">»</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% endblock %}

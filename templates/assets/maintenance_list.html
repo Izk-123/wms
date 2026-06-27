@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}Maintenance Records{% endblock %}
+{% block page_title %}Maintenance Records{% endblock %}
+
+{% block content %}
+
+{% include 'inventory/_card_header.html' with page_title="Maintenance Log" page_subtitle="All maintenance activities for assets" add_url=None add_label=None %}
+
+{# ── Due Maintenance Alerts ───────────────────────────── #}
+{% if due_soon %}
+<div class="wms-alert wms-alert-warning mb-3">
+    <span class="material-icons" style="font-size:18px;">warning</span>
+    <div>
+        <strong>Maintenance Due Soon</strong>
+        <ul class="mb-0 mt-1" style="font-size:.875rem;">
+            {% for asset in due_soon %}
+            <li>
+                <a href="{% url 'assets:asset-detail' asset.pk %}" class="text-primary-wms text-decoration-none">
+                    {{ asset.name }}
+                </a>
+                – due {{ asset.next_maintenance_date|date:"d M Y" }}
+                {% if asset.status == 'assigned' %}
+                <span class="wms-badge badge-info ms-1">Assigned</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'assets:maintenance-list' %}"
+                    hx-trigger="change"
+                    hx-target="#maintenance-table">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'assets:maintenance-list' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="maintenance-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>Type</th>
+                    <th>Scheduled</th>
+                    <th>Status</th>
+                    <th>Performed By</th>
+                    <th>Cost</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in records %}
+                <tr>
+                    <td>
+                        <a href="{% url 'assets:asset-detail' record.asset.pk %}" class="fw-semibold text-primary-wms text-decoration-none">
+                            {{ record.asset.name }}
+                        </a>
+                        <div class="text-muted-wms" style="font-size:.78rem;">{{ record.asset.asset_number }}</div>
+                    </td>
+                    <td>{{ record.get_maintenance_type_display }}</td>
+                    <td>{{ record.scheduled_date|date:"d M Y" }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if record.status == 'completed' %}badge-success
+                            {% elif record.status == 'in_progress' %}badge-warning
+                            {% elif record.status == 'cancelled' %}badge-danger
+                            {% else %}badge-neutral{% endif %}">
+                            {{ record.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ record.performed_by|default:"—" }}</td>
+                    <td>{% if record.cost %}MWK {{ record.cost|floatformat:2 }}{% else %}—{% endif %}</td>
+                    <td>
+                        <a href="{% url 'assets:maintenance-update' record.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">engineering</span>
+                            <h6>No maintenance records found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

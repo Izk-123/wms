@@ -1,0 +1,100 @@
+<!-- Welcome Modal — shown once to new users -->
+<div class="modal fade" id="welcomeModal" tabindex="-1"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg"
+             style="border-radius:16px;overflow:hidden;">
+
+            <!-- Coloured header -->
+            <div style="background:linear-gradient(135deg,#1e293b,#0ea5e9);
+                        padding:2rem;text-align:center;">
+                <span class="material-icons"
+                      style="font-size:52px;color:white;opacity:.9;">
+                    warehouse
+                </span>
+                <h4 style="color:white;margin:.75rem 0 .25rem;font-weight:700;">
+                    Welcome to J&N WMS
+                </h4>
+                <p style="color:rgba(255,255,255,.75);font-size:.875rem;margin:0;">
+                    Warehouse Management System
+                </p>
+            </div>
+
+            <div class="modal-body p-4">
+                <p class="text-secondary mb-3" style="font-size:.9rem;">
+                    Hello <strong>{{ request.user.first_name|default:request.user.username }}</strong>!
+                    You're logged in as
+                    <span class="badge rounded-pill"
+                          style="background:#e0f2fe;color:#0369a1;">
+                        {{ request.user.role.name|default:"User" }}
+                    </span>
+                </p>
+
+                <p class="text-secondary mb-4" style="font-size:.875rem;">
+                    This quick tour will show you the key features of the system.
+                    It only takes about 2 minutes.
+                </p>
+
+                <!-- What you can do -->
+                <div class="row g-2 mb-4">
+                    <div class="col-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded"
+                             style="background:#f8fafc;">
+                            <span class="material-icons"
+                                  style="color:#0ea5e9;font-size:20px;">
+                                inventory_2
+                            </span>
+                            <span style="font-size:.8rem;">Track inventory</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded"
+                             style="background:#f8fafc;">
+                            <span class="material-icons"
+                                  style="color:#22c55e;font-size:20px;">
+                                move_to_inbox
+                            </span>
+                            <span style="font-size:.8rem;">Receive goods</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded"
+                             style="background:#f8fafc;">
+                            <span class="material-icons"
+                                  style="color:#f59e0b;font-size:20px;">
+                                request_page
+                            </span>
+                            <span style="font-size:.8rem;">Request materials</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="d-flex align-items-center gap-2 p-2 rounded"
+                             style="background:#f8fafc;">
+                            <span class="material-icons"
+                                  style="color:#8b5cf6;font-size:20px;">
+                                bar_chart
+                            </span>
+                            <span style="font-size:.8rem;">View reports</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary flex-fill"
+                            id="startTourBtn">
+                        <span class="material-icons me-1"
+                              style="font-size:18px;vertical-align:middle;">
+                            play_circle
+                        </span>
+                        Start Tour
+                    </button>
+                    <button class="btn btn-outline-secondary"
+                            id="skipTourBtn">
+                        Skip
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block title %}Return Materials{% endblock %}
+{% block page_title %}Return Materials{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-9">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'operations:mr-detail' mr.pk %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <div>
+                <h5 class="fw-semibold mb-0 text-primary-wms">Return Materials</h5>
+                <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+                    Return unused materials from {{ mr.reference }}
+                </p>
+            </div>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Return Header -->
+            <div class="wms-card mb-3">
+                <div class="wms-card-header">
+                    <h6>Return Details</h6>
+                </div>
+                <div class="wms-card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Return to Warehouse <span class="text-danger">*</span></label>
+                            {{ form.warehouse }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Notes</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Items -->
+            <div class="wms-card mb-3">
+                <div class="wms-card-header">
+                    <h6>Items to Return</h6>
+                    <span class="text-muted-wms" style="font-size:.78rem;">Only issued items are shown</span>
+                </div>
+                <div class="wms-card-body">
+                    {{ formset.management_form }}
+                    <div class="table-responsive">
+                        <table class="wms-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity Issued</th>
+                                    <th>Quantity to Return <span class="text-danger">*</span></th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subform in formset %}
+                                <tr>
+                                    <td>{{ subform.item }}</td>
+                                    <td>{{ subform.initial.quantity_issued|default:0 }}</td>
+                                    <td>{{ subform.quantity_returned }}{{ subform.quantity_returned.errors }}</td>
+                                    <td>{{ subform.notes }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn-wms-primary">
+                    <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">undo</span>
+                    Process Return
+                </button>
+                <a href="{% url 'operations:mr-detail' mr.pk %}" class="btn-wms-secondary">Cancel</a>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% block title %}Assets{% endblock %}
+{% block page_title %}Tools & Equipment{% endblock %}
+
+{% block content %}
+
+{% url 'assets:asset-create' as add_asset_url %}
+{% include 'inventory/_card_header.html' with page_title="Assets Register" page_subtitle="All tools, equipment and vehicles" add_url=add_asset_url add_label="Register Asset" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by name, number or serial..."
+                       hx-get="{% url 'assets:asset-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#asset-table"
+                       hx-include="[name='status'],[name='type']">
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'assets:asset-list' %}"
+                    hx-trigger="change"
+                    hx-target="#asset-table"
+                    hx-include="[name='q'],[name='type']">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="type" class="form-select-wms"
+                    hx-get="{% url 'assets:asset-list' %}"
+                    hx-trigger="change"
+                    hx-target="#asset-table"
+                    hx-include="[name='q'],[name='status']">
+                <option value="">All Types</option>
+                {% for val, label in asset_types %}
+                <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span> Filter
+            </button>
+            <a href="{% url 'assets:asset-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="asset-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Asset</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Condition</th>
+                    <th>Status</th>
+                    <th>Location</th>
+                    <th>Next Maintenance</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td>
+                        <a href="{% url 'assets:asset-detail' asset.pk %}" class="fw-semibold text-primary-wms text-decoration-none">
+                            {{ asset.name }}
+                        </a>
+                        <div class="text-muted-wms" style="font-size:.78rem;">
+                            {{ asset.asset_number }}
+                        </div>
+                    </td>
+                    <td>{{ asset.get_asset_type_display }}</td>
+                    <td>{{ asset.category.name }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if asset.condition == 'excellent' or asset.condition == 'good' %}badge-success
+                            {% elif asset.condition == 'fair' %}badge-warning
+                            {% else %}badge-danger{% endif %}">
+                            {{ asset.get_condition_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="wms-badge
+                            {% if asset.status == 'available' %}badge-success
+                            {% elif asset.status == 'assigned' %}badge-info
+                            {% elif asset.status == 'under_maintenance' %}badge-warning
+                            {% elif asset.status == 'lost' %}badge-danger
+                            {% else %}badge-neutral{% endif %}">
+                            {{ asset.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ asset.location|default:"—" }}</td>
+                    <td>
+                        {% if asset.next_maintenance_date %}
+                        <span class="{% if asset.next_maintenance_date < today %}text-danger fw-semibold{% endif %}">
+                            {{ asset.next_maintenance_date|date:"d M Y" }}
+                        </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'assets:asset-detail' asset.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            <a href="{% url 'assets:asset-update' asset.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">build</span>
+                            <h6>No assets found</h6>
+                            <p><a href="{% url 'assets:asset-create' %}" class="text-primary-wms">Register your first asset</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ selected_status }}&type={{ selected_type }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ selected_status }}&type={{ selected_type }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

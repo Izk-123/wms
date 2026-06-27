@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}My Profile{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-7">
+
+        <!-- Profile Header -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-body p-4 d-flex align-items-center gap-3 flex-wrap">
+                <div style="width:64px;height:64px;background:linear-gradient(135deg, var(--brand-500), var(--brand-700));border-radius:50%;
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:1.4rem;font-weight:700;color:#fff;flex-shrink:0;">
+                    {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+                </div>
+                <div>
+                    <h5 class="fw-semibold mb-0 text-primary-wms">
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </h5>
+                    <p class="text-secondary-wms mb-0" style="font-size:.875rem;">
+                        {{ request.user.role.name|default:"No Role" }} &middot; {{ request.user.email }}
+                    </p>
+                </div>
+                <div class="ms-auto d-flex gap-2 flex-wrap">
+                    <button onclick="replayTour()" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+                        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">replay</span>
+                        Replay Tour
+                    </button>
+                    <a href="{% url 'accounts:profile-update' %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+                        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span>
+                        Edit
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tutorial Status -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-body d-flex align-items-center justify-content-between py-3">
+                <div>
+                    <p class="fw-semibold mb-0 text-primary-wms" style="font-size:.875rem;">
+                        System Tutorial
+                    </p>
+                    <p class="text-secondary-wms mb-0" style="font-size:.8rem;">
+                        {% if tutorial_completed %}
+                            You completed the tour. Reset it to run again on next login.
+                        {% else %}
+                            Tour not completed yet.
+                        {% endif %}
+                    </p>
+                </div>
+                <form method="post" action="{% url 'accounts:tutorial-replay' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+                        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">restart_alt</span>
+                        Reset Tour
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Recent Activity</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Module</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in recent_activity %}
+                        <tr>
+                            <td>{{ activity.action }}</td>
+                            <td>{{ activity.module }}</td>
+                            <td style="color:var(--text-muted);">{{ activity.created_at|date:"d M Y H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No activity yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

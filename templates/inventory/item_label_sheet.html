@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Label Sheet — {{ item.sku }}</title>
+    <style>
+        /* ── Base ──────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #f1f5f9;
+            padding: 1rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* ── Toolbar (on-screen) ───────────────────── */
+        .toolbar {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        .toolbar a, .toolbar button {
+            background: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: .5rem 1.5rem;
+            font-size: .9rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0 .25rem;
+        }
+        .toolbar a:hover, .toolbar button:hover {
+            background: #0f172a;
+        }
+        .toolbar .btn-secondary {
+            background: #64748b;
+        }
+        .toolbar .btn-secondary:hover {
+            background: #475569;
+        }
+
+        /* ── Sheet grid ────────────────────────────── */
+        .sheet {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: .75rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 1cm;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        }
+
+        .label {
+            border: 1.5px solid #1e293b;
+            border-radius: 8px;
+            padding: .75rem;
+            display: flex;
+            gap: .75rem;
+            align-items: flex-start;
+        }
+
+        .label-left {
+            flex-shrink: 0;
+        }
+
+        .label-left img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+            background: white;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .label-right {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sku {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1e293b;
+        }
+
+        .name {
+            font-size: .72rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: .3rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .meta {
+            font-size: .65rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .barcode-strip {
+            margin-top: .4rem;
+        }
+
+        .barcode-strip img {
+            width: 100%;
+            height: 35px;
+            object-fit: contain;
+            background: white;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .company {
+            font-size: .6rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: .15rem;
+        }
+
+        /* ── Print styles ──────────────────────────── */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .toolbar { display: none; }
+
+            .sheet {
+                margin: 0;
+                padding: 0.5cm;
+                max-width: 100%;
+                box-shadow: none;
+                border-radius: 0;
+            }
+
+            .label {
+                border-color: #000;
+            }
+
+            .label-left img,
+            .barcode-strip img {
+                background: white;
+            }
+
+            @page {
+                size: A4;
+                margin: 0.5cm;
+            }
+        }
+
+        /* ── Responsive ────────────────────────────── */
+        @media (max-width: 500px) {
+            .sheet {
+                grid-template-columns: 1fr;
+                padding: .5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toolbar no-print">
+    <a href="{% url 'inventory:item-label' item.pk %}" class="btn-secondary">← Back to single label</a>
+    <button onclick="window.print()">🖨 Print Sheet</button>
+</div>
+
+<div class="sheet">
+    {% for i in label_range %}
+    <div class="label">
+
+        <!-- QR Code -->
+        <div class="label-left">
+            {% if item.qr_code %}
+            <img src="{{ item.qr_code.url }}" alt="QR">
+            {% endif %}
+        </div>
+
+        <!-- Details -->
+        <div class="label-right">
+            <div class="company">J&N WMS</div>
+            <div class="sku">{{ item.sku }}</div>
+            <div class="name">{{ item.name }}</div>
+            <div class="meta">
+                {{ item.category.name }}<br>
+                {{ item.get_item_type_display }}<br>
+                Unit: {{ item.unit.symbol }}<br>
+                Min: {{ item.minimum_stock }} {{ item.unit.symbol }}
+            </div>
+
+            <!-- Barcode -->
+            {% if item.barcode_image %}
+            <div class="barcode-strip">
+                <img src="{{ item.barcode_image.url }}" alt="Barcode">
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    {% endfor %}
+</div>
+
+</body>
+</html>

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Create Goods Receipt{% endblock %}
+{% block page_title %}Receive Goods{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'procurement:po-detail' po.pk %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">Goods Receipt for {{ po.reference }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ po.supplier.name }} &middot; {{ po.delivery_warehouse.name }}
+        </p>
+    </div>
+</div>
+
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-10">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="form-group">
+                        <label class="form-label-wms">Notes</label>
+                        {{ form.notes }}
+                    </div>
+
+                    <h6 class="fw-semibold text-primary-wms mt-4 mb-3">Received Items</h6>
+                    {{ formset.management_form }}
+                    <div class="table-responsive">
+                        <table class="wms-table">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>PO Ordered</th>
+                                    <th>Previously Received</th>
+                                    <th>Quantity Receiving <span class="text-danger">*</span></th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subform in formset %}
+                                <tr>
+                                    <td>{{ subform.purchase_order_item.item.name }}</td>
+                                    <td>{{ subform.purchase_order_item.quantity_ordered }} {{ subform.purchase_order_item.item.unit.symbol }}</td>
+                                    <td>{{ subform.purchase_order_item.quantity_received }}</td>
+                                    <td>{{ subform.quantity_received }}{{ subform.quantity_received.errors }}</td>
+                                    <td>{{ subform.notes }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            Save Draft
+                        </button>
+                        <a href="{% url 'procurement:po-detail' po.pk %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

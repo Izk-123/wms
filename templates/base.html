@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en"
+      x-data="{
+          darkMode: localStorage.getItem('wms_theme') === 'dark' ||
+                    (!localStorage.getItem('wms_theme') &&
+                     window.matchMedia('(prefers-color-scheme: dark)').matches),
+          sidebarOpen: false,
+          sidebarCollapsed: localStorage.getItem('wms_sidebar') === 'collapsed'
+      }"
+      :class="darkMode ? 'dark-mode' : 'light-mode'"
+      x-init="
+          $watch('darkMode', val => localStorage.setItem('wms_theme', val ? 'dark' : 'light'));
+          $watch('sidebarCollapsed', val => localStorage.setItem('wms_sidebar', val ? 'collapsed' : 'open'));
+      ">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WMS{% endblock %} | J&N Warehouse</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Google Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Google Fonts — Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- AOS — Animate On Scroll -->
+    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
+
+    <!-- Driver.js -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+    <style>
+        /* ══════════════════════════════════════════════
+           DESIGN TOKENS
+        ══════════════════════════════════════════════ */
+        :root {
+            --font-family:       'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+            /* Brand */
+            --brand-50:          #f0f9ff;
+            --brand-100:         #e0f2fe;
+            --brand-400:         #38bdf8;
+            --brand-500:         #0ea5e9;
+            --brand-600:         #0284c7;
+            --brand-700:         #0369a1;
+
+            /* Sidebar */
+            --sidebar-width:     260px;
+            --sidebar-collapsed: 68px;
+            --sidebar-bg:        #0f172a;
+            --sidebar-text:      #94a3b8;
+            --sidebar-active-bg: rgba(14,165,233,.15);
+            --sidebar-active:    #38bdf8;
+            --sidebar-heading:   #475569;
+
+            /* Surface */
+            --bg:                #f1f5f9;
+            --surface:           #ffffff;
+            --surface-2:         #f8fafc;
+            --border:            #e2e8f0;
+            --border-subtle:     #f1f5f9;
+
+            /* Text */
+            --text-primary:      #0f172a;
+            --text-secondary:    #64748b;
+            --text-muted:        #94a3b8;
+
+            /* Status */
+            --success:           #22c55e;
+            --success-bg:        #f0fdf4;
+            --warning:           #f59e0b;
+            --warning-bg:        #fffbeb;
+            --danger:            #ef4444;
+            --danger-bg:         #fef2f2;
+            --info:              #3b82f6;
+            --info-bg:           #eff6ff;
+
+            /* Elevation */
+            --shadow-sm:         0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+            --shadow-md:         0 4px 16px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+            --shadow-lg:         0 10px 40px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.06);
+
+            /* Radius */
+            --radius-sm:         6px;
+            --radius-md:         10px;
+            --radius-lg:         14px;
+            --radius-xl:         20px;
+
+            /* Topbar */
+            --topbar-h:          60px;
+
+            /* Transitions */
+            --transition:        all .2s cubic-bezier(.4,0,.2,1);
+        }
+
+        /* ── Dark Mode Tokens ─────────────────────── */
+        .dark-mode {
+            --bg:                #0f172a;
+            --surface:           #1e293b;
+            --surface-2:         #162032;
+            --border:            #334155;
+            --border-subtle:     #1e293b;
+            --text-primary:      #f1f5f9;
+            --text-secondary:    #94a3b8;
+            --text-muted:        #64748b;
+            --shadow-sm:         0 1px 3px rgba(0,0,0,.3);
+            --shadow-md:         0 4px 16px rgba(0,0,0,.4);
+            --shadow-lg:         0 10px 40px rgba(0,0,0,.5);
+        }
+
+        /* ── Base Reset ───────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-family);
+            background: var(--bg);
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.6;
+            transition: background .3s ease, color .3s ease;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Sidebar ───────────────────────────────── */
+        #sidebar {
+            width: var(--sidebar-width);
+            min-height: 100vh;
+            height: 100%;
+            background: var(--sidebar-bg);
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 1050;
+            display: flex;
+            flex-direction: column;
+            transition: width .3s cubic-bezier(.4,0,.2,1),
+                        transform .3s cubic-bezier(.4,0,.2,1);
+            overflow: hidden;
+        }
+
+        #sidebar.collapsed { width: var(--sidebar-collapsed); }
+
+        #sidebar .sidebar-logo {
+            padding: 1.1rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            min-height: var(--topbar-h);
+        }
+
+        #sidebar .sidebar-logo .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #0ea5e9, #0369a1);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        #sidebar .sidebar-logo .logo-text {
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        #sidebar.collapsed .logo-text { opacity: 0; width: 0; }
+
+        #sidebar .sidebar-logo .logo-title {
+            font-size: .9rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            line-height: 1.2;
+        }
+        #sidebar .sidebar-logo .logo-sub {
+            font-size: .65rem;
+            color: var(--sidebar-heading);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        #sidebar .nav-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: .5rem 0;
+            scrollbar-width: thin;
+            scrollbar-color: #334155 transparent;
+        }
+
+        #sidebar .nav-heading {
+            font-size: .62rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--sidebar-heading);
+            padding: 1rem 1rem .3rem;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        #sidebar.collapsed .nav-heading { opacity: 0; padding: .5rem 0; }
+
+        #sidebar .nav-item a {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            padding: .55rem .85rem;
+            margin: 1px .5rem;
+            border-radius: var(--radius-md);
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: .82rem;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: var(--transition);
+            position: relative;
+        }
+
+        #sidebar .nav-item a:hover {
+            background: rgba(255,255,255,.05);
+            color: #e2e8f0;
+        }
+
+        #sidebar .nav-item a.active {
+            background: var(--sidebar-active-bg);
+            color: var(--sidebar-active);
+            font-weight: 600;
+        }
+
+        #sidebar .nav-item a.active::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 20%; bottom: 20%;
+            width: 3px;
+            background: var(--brand-500);
+            border-radius: 0 3px 3px 0;
+            margin-left: -.5rem;
+        }
+
+        #sidebar .nav-item a .nav-icon {
+            font-size: 19px;
+            flex-shrink: 0;
+            width: 22px;
+            text-align: center;
+        }
+
+        #sidebar .nav-item a .nav-label {
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        #sidebar.collapsed .nav-label { opacity: 0; width: 0; }
+
+        #sidebar.collapsed .nav-item a {
+            justify-content: center;
+            padding: .55rem;
+            margin: 1px .35rem;
+        }
+
+        /* User footer */
+        #sidebar .sidebar-user {
+            padding: .85rem 1rem;
+            border-top: 1px solid rgba(255,255,255,.06);
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            overflow: hidden;
+        }
+
+        #sidebar .sidebar-user .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--brand-500), var(--brand-700));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .8rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        #sidebar .sidebar-user .user-info {
+            overflow: hidden;
+            flex: 1;
+            transition: var(--transition);
+        }
+        #sidebar.collapsed .user-info { opacity: 0; width: 0; }
+
+        #sidebar .sidebar-user .user-name {
+            font-size: .8rem;
+            font-weight: 600;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #sidebar .sidebar-user .user-role {
+            font-size: .68rem;
+            color: var(--sidebar-heading);
+        }
+
+        /* ── Main content ───────────────────────────── */
+        #main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left .3s cubic-bezier(.4,0,.2,1);
+        }
+        #main-content.sidebar-collapsed {
+            margin-left: var(--sidebar-collapsed);
+        }
+
+        /* ── Topbar ─────────────────────────────────── */
+        #topbar {
+            height: var(--topbar-h);
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: background .3s ease;
+        }
+
+        #topbar .page-title {
+            font-size: .92rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* ── Cards ───────────────────────────────────── */
+        .wms-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+        .wms-card:hover { box-shadow: var(--shadow-md); }
+
+        .wms-card-header {
+            padding: 1rem 1.25rem .75rem;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .wms-card-header h6 {
+            font-size: .875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .wms-card-body { padding: 1.25rem; }
+
+        /* ── Stat cards ─────────────────────────────── */
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 1.1rem 1.25rem;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card .stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .stat-card .stat-label {
+            font-size: .72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+        }
+
+        /* ── Tables (FIXED STICKY HEADER) ────────────── */
+        .wms-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: .82rem;
+        }
+
+        .wms-table thead th {
+            position: sticky;
+            top: 0;                           /* Anchor to the top of the scrollable container */
+            z-index: 10;
+            background: var(--surface-2);     /* Solid background, no transparency */
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: .7rem;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            padding: .65rem 1rem;
+            border-bottom: 2px solid var(--border);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+            white-space: nowrap;
+        }
+
+        .wms-table tbody td {
+            padding: .75rem 1rem;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            vertical-align: middle;
+        }
+
+        .wms-table tbody tr:last-child td { border-bottom: none; }
+        .wms-table tbody tr { transition: background .15s ease; }
+        .wms-table tbody tr:hover { background: var(--surface-2); }
+
+        /* Responsive wrapper for tables – now scrollable vertically */
+        .table-responsive {
+            overflow-x: auto;
+            overflow-y: auto;                  /* Enable vertical scrolling */
+            max-height: 60vh;                  /* Limit height – adjust as needed */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* ── Badges ──────────────────────────────────── */
+        .wms-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+            padding: .25rem .65rem;
+            border-radius: 999px;
+            font-size: .7rem;
+            font-weight: 600;
+        }
+
+        .badge-success { background: var(--success-bg); color: #15803d; }
+        .badge-warning { background: var(--warning-bg); color: #b45309; }
+        .badge-danger  { background: var(--danger-bg);  color: #b91c1c; }
+        .badge-info    { background: var(--info-bg);    color: #1d4ed8; }
+        .badge-neutral { background: var(--surface-2);  color: var(--text-secondary); border: 1px solid var(--border); }
+
+        /* ── Buttons ─────────────────────────────────── */
+        .btn-wms-primary {
+            background: var(--brand-500);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: .5rem 1.1rem;
+            font-size: .82rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-wms-primary:hover {
+            background: var(--brand-600);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14,165,233,.35);
+        }
+
+        .btn-wms-secondary {
+            background: var(--surface);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: .5rem 1.1rem;
+            font-size: .82rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .btn-wms-secondary:hover {
+            background: var(--surface-2);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        /* ── Forms ───────────────────────────────────── */
+        .form-control-wms {
+            width: 100%;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: .6rem .9rem;
+            font-size: .85rem;
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .form-control-wms:focus {
+            border-color: var(--brand-500);
+            box-shadow: 0 0 0 3px rgba(14,165,233,.12);
+        }
+
+        .form-control-wms::placeholder { color: var(--text-muted); }
+
+        .input-icon-wrap {
+            position: relative;
+        }
+        .input-icon-wrap .input-icon {
+            position: absolute;
+            left: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 18px;
+            pointer-events: none;
+        }
+        .input-icon-wrap .form-control-wms {
+            padding-left: 2.4rem;
+        }
+
+        /* ── Empty state ────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+        .empty-state .empty-icon {
+            font-size: 3rem;
+            margin-bottom: .75rem;
+            opacity: .4;
+        }
+        .empty-state h6 {
+            font-size: .9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: .4rem;
+        }
+        .empty-state p {
+            font-size: .82rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Alerts ──────────────────────────────────── */
+        .wms-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: .75rem;
+            padding: .85rem 1rem;
+            border-radius: var(--radius-md);
+            font-size: .85rem;
+            border-left: 4px solid;
+            margin-bottom: 1rem;
+        }
+
+        .wms-alert-success { background: var(--success-bg); border-color: var(--success); color: #15803d; }
+        .wms-alert-warning { background: var(--warning-bg); border-color: var(--warning); color: #b45309; }
+        .wms-alert-danger  { background: var(--danger-bg);  border-color: var(--danger);  color: #b91c1c; }
+        .wms-alert-info    { background: var(--info-bg);    border-color: var(--info);    color: #1d4ed8; }
+
+        /* ── Stylish Filter Bar ───────────────────────── */
+        .filter-bar {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 0.6rem 1rem;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-bar:hover {
+            box-shadow: var(--shadow-md);
+        }
+
+        .filter-bar .form-control-wms,
+        .filter-bar .form-select-wms {
+            font-size: .82rem;
+            padding: .5rem .85rem;
+            border-radius: var(--radius-md);
+            background: var(--surface-2);
+            border-color: var(--border);
+            transition: var(--transition);
+        }
+
+        .filter-bar .form-control-wms:focus,
+        .filter-bar .form-select-wms:focus {
+            background: var(--surface);
+            border-color: var(--brand-500);
+            box-shadow: 0 0 0 3px rgba(14,165,233,.1);
+        }
+
+        .filter-bar .btn-filter {
+            background: var(--brand-500);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: .5rem 1.2rem;
+            font-size: .8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            white-space: nowrap;
+        }
+
+        .filter-bar .btn-filter:hover {
+            background: var(--brand-600);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(14,165,233,.3);
+        }
+
+        .filter-bar .btn-clear {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: .5rem 1rem;
+            font-size: .8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+            white-space: nowrap;
+        }
+
+        .filter-bar .btn-clear:hover {
+            background: var(--surface-2);
+            color: var(--text-primary);
+            border-color: var(--text-muted);
+        }
+
+        .filter-bar .input-with-icon {
+            position: relative;
+        }
+
+        .filter-bar .input-with-icon .filter-icon {
+            position: absolute;
+            left: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 18px;
+            pointer-events: none;
+        }
+
+        .filter-bar .input-with-icon .form-control-wms {
+            padding-left: 2.4rem;
+        }
+
+        @media (max-width: 576px) {
+            .filter-bar .btn-filter,
+            .filter-bar .btn-clear {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* ── Mobile ──────────────────────────────────── */
+        @media (max-width: 768px) {
+            #sidebar {
+                transform: translateX(-100%);
+                width: var(--sidebar-width) !important;
+            }
+            #sidebar.mobile-open { transform: translateX(0); }
+            #main-content { margin-left: 0 !important; }
+
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,.5);
+                z-index: 1040;
+            }
+            .mobile-overlay.active { display: block; }
+            #topbar { padding: 0 1rem; }
+        }
+
+        /* ── Dark mode overrides ────────────────────── */
+        .dark-mode .form-control,
+        .dark-mode .form-control-wms,
+        .dark-mode .form-select,
+        .dark-mode .form-select-wms {
+            background: var(--surface-2);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        .dark-mode .form-control:focus,
+        .dark-mode .form-control-wms:focus {
+            background: var(--surface-2);
+        }
+        .dark-mode .table { color: var(--text-primary); }
+        .dark-mode .modal-content {
+            background: var(--surface);
+            border-color: var(--border);
+            color: var(--text-primary);
+        }
+        .dark-mode .modal-header,
+        .dark-mode .modal-footer {
+            border-color: var(--border);
+        }
+        .dark-mode .dropdown-menu {
+            background: var(--surface);
+            border-color: var(--border);
+        }
+        .dark-mode .dropdown-item {
+            color: var(--text-primary);
+        }
+        .dark-mode .dropdown-item:hover {
+            background: var(--surface-2);
+        }
+
+        /* ── Scrollbar ───────────────────────────────── */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        /* ── Animations ──────────────────────────────── */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in { animation: fadeIn .3s ease forwards; }
+        .page-content { animation: fadeIn .25s ease; }
+
+        /* ── Utilities ───────────────────────────────── */
+        .text-primary-wms  { color: var(--text-primary) !important; }
+        .text-secondary-wms { color: var(--text-secondary) !important; }
+        .text-muted-wms    { color: var(--text-muted) !important; }
+        .bg-surface        { background: var(--surface) !important; }
+        .bg-surface-2      { background: var(--surface-2) !important; }
+        .border-wms        { border-color: var(--border) !important; }
+        .rounded-wms       { border-radius: var(--radius-md) !important; }
+        .rounded-wms-lg    { border-radius: var(--radius-lg) !important; }
+
+        /* ── Bootstrap overrides ────────────────────── */
+        .card {
+            background: var(--surface);
+            border-color: var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+        .card-header {
+            background: var(--surface-2);
+            border-color: var(--border);
+        }
+        .table { color: var(--text-primary); }
+        .table > :not(caption) > * > * { background-color: transparent; }
+        .table-hover > tbody > tr:hover > * { background-color: var(--surface-2); }
+
+        .form-control, .form-select {
+            background: var(--surface);
+            border-color: var(--border);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--surface);
+            border-color: var(--brand-500);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(14,165,233,.12);
+        }
+
+        .btn { border-radius: var(--radius-md); font-size: .82rem; }
+        .modal-content { border-radius: var(--radius-xl); border: 1px solid var(--border); }
+        .alert { border-radius: var(--radius-md); }
+        .badge { border-radius: 6px; font-size: .7rem; }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<!-- Mobile overlay -->
+<div class="mobile-overlay" id="mobileOverlay"
+     onclick="closeMobileSidebar()"></div>
+
+<!-- ═══════════════════════════════════════════
+     SIDEBAR
+═══════════════════════════════════════════ -->
+<nav id="sidebar" :class="sidebarCollapsed ? 'collapsed' : ''"
+     x-ref="sidebar">
+
+    <div class="sidebar-logo">
+        <div class="logo-icon">
+            <span class="material-icons" style="color:white;font-size:20px;">warehouse</span>
+        </div>
+        <div class="logo-text">
+            <div class="logo-title">J&N WMS</div>
+            <div class="logo-sub">Construction & Mfg</div>
+        </div>
+    </div>
+
+    <div class="nav-scroll">
+        <!-- Dashboard -->
+        <div class="nav-item">
+            <a href="{% url 'reports:dashboard' %}"
+               class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
+               title="Dashboard">
+                <span class="material-icons nav-icon">dashboard</span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+        </div>
+
+        <!-- Inventory -->
+        {% if perms.inventory.view_item %}
+        <div class="nav-heading">Inventory</div>
+        <div class="nav-item">
+            <a href="{% url 'inventory:item-list' %}"
+               class="{% if 'inventory/items' in request.path %}active{% endif %}"
+               title="Items">
+                <span class="material-icons nav-icon">inventory_2</span>
+                <span class="nav-label">Items</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if perms.inventory.view_stock_report %}
+        <div class="nav-item">
+            <a href="{% url 'inventory:stock-list' %}"
+               class="{% if 'inventory/stock' in request.path and 'receive' not in request.path and 'issue' not in request.path %}active{% endif %}"
+               title="Stock Levels">
+                <span class="material-icons nav-icon">stacked_bar_chart</span>
+                <span class="nav-label">Stock Levels</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'inventory:movement-list' %}"
+               class="{% if 'inventory/movements' in request.path %}active{% endif %}"
+               title="Stock Movements">
+                <span class="material-icons nav-icon">swap_horiz</span>
+                <span class="nav-label">Movements</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if perms.inventory.view_item %}
+        <div class="nav-item">
+            <a href="{% url 'inventory:warehouse-list' %}"
+               class="{% if 'inventory/warehouses' in request.path %}active{% endif %}"
+               title="Warehouses">
+                <span class="material-icons nav-icon">warehouse</span>
+                <span class="nav-label">Warehouses</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'inventory:qr-scanner' %}"
+               class="{% if 'scanner' in request.path %}active{% endif %}"
+               title="QR Scanner">
+                <span class="material-icons nav-icon">qr_code_scanner</span>
+                <span class="nav-label">QR Scanner</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Procurement -->
+        {% if perms.procurement.view_supplier or perms.procurement.view_purchaserequest or perms.procurement.view_purchaseorder %}
+        <div class="nav-heading">Procurement</div>
+        {% endif %}
+
+        {% if perms.procurement.view_supplier %}
+        <div class="nav-item">
+            <a href="{% url 'procurement:supplier-list' %}"
+               class="{% if 'suppliers' in request.path %}active{% endif %}"
+               title="Suppliers">
+                <span class="material-icons nav-icon">local_shipping</span>
+                <span class="nav-label">Suppliers</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if perms.procurement.view_purchaserequest %}
+        <div class="nav-item">
+            <a href="{% url 'procurement:pr-list' %}"
+               class="{% if 'procurement/requests' in request.path %}active{% endif %}"
+               title="Purchase Requests">
+                <span class="material-icons nav-icon">request_page</span>
+                <span class="nav-label">Purchase Requests</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if perms.procurement.view_purchaseorder %}
+        <div class="nav-item">
+            <a href="{% url 'procurement:po-list' %}"
+               class="{% if 'procurement/orders' in request.path %}active{% endif %}"
+               title="Purchase Orders">
+                <span class="material-icons nav-icon">receipt_long</span>
+                <span class="nav-label">Purchase Orders</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'procurement:grn-list' %}"
+               class="{% if '/grn/' in request.path %}active{% endif %}"
+               title="Goods Receipts">
+                <span class="material-icons nav-icon">move_to_inbox</span>
+                <span class="nav-label">Goods Receipts</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Operations -->
+        {% if perms.operations.view_project or perms.operations.view_materialrequest %}
+        <div class="nav-heading">Operations</div>
+        {% endif %}
+
+        {% if perms.operations.view_project %}
+        <div class="nav-item">
+            <a href="{% url 'operations:project-list' %}"
+               class="{% if 'projects' in request.path %}active{% endif %}"
+               title="Projects">
+                <span class="material-icons nav-icon">construction</span>
+                <span class="nav-label">Projects</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {% if perms.operations.view_materialrequest %}
+        <div class="nav-item">
+            <a href="{% url 'operations:mr-list' %}"
+               class="{% if 'operations/requests' in request.path %}active{% endif %}"
+               title="Material Requests">
+                <span class="material-icons nav-icon">handyman</span>
+                <span class="nav-label">Material Requests</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Assets -->
+        {% if perms.assets.view_asset %}
+        <div class="nav-heading">Assets</div>
+        <div class="nav-item">
+            <a href="{% url 'assets:asset-list' %}"
+               class="{% if 'assets' in request.path and 'maintenance' not in request.path %}active{% endif %}"
+               title="Tools & Equipment">
+                <span class="material-icons nav-icon">build</span>
+                <span class="nav-label">Tools & Equipment</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'assets:maintenance-list' %}"
+               class="{% if 'maintenance' in request.path %}active{% endif %}"
+               title="Maintenance">
+                <span class="material-icons nav-icon">engineering</span>
+                <span class="nav-label">Maintenance</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Reports -->
+        {% if perms.inventory.view_stock_report %}
+        <div class="nav-heading">Reports</div>
+        <div class="nav-item">
+            <a href="{% url 'reports:inventory' %}"
+               class="{% if 'reports/inventory' in request.path %}active{% endif %}"
+               title="Inventory Report">
+                <span class="material-icons nav-icon">bar_chart</span>
+                <span class="nav-label">Inventory Report</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'reports:movements' %}"
+               class="{% if 'reports/movements' in request.path %}active{% endif %}"
+               title="Movement Report">
+                <span class="material-icons nav-icon">swap_vert</span>
+                <span class="nav-label">Movement Report</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'reports:projects' %}"
+               class="{% if 'reports/projects' in request.path %}active{% endif %}"
+               title="Project Consumption">
+                <span class="material-icons nav-icon">analytics</span>
+                <span class="nav-label">Project Costs</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Administration -->
+        {% if perms.accounts.manage_users %}
+        <div class="nav-heading">Administration</div>
+        <div class="nav-item">
+            <a href="{% url 'accounts:user-list' %}"
+               class="{% if 'accounts/users' in request.path %}active{% endif %}"
+               title="Users">
+                <span class="material-icons nav-icon">people</span>
+                <span class="nav-label">Users</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'accounts:role-list' %}"
+               class="{% if 'accounts/roles' in request.path %}active{% endif %}"
+               title="Roles">
+                <span class="material-icons nav-icon">admin_panel_settings</span>
+                <span class="nav-label">Roles</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'admin:index' %}" title="Admin Panel">
+                <span class="material-icons nav-icon">settings</span>
+                <span class="nav-label">Admin Panel</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Account -->
+        <div class="nav-heading">Account</div>
+        <div class="nav-item">
+            <a href="{% url 'notifications:list' %}"
+               class="{% if 'notifications' in request.path %}active{% endif %}"
+               title="Notifications">
+                <span class="material-icons nav-icon">notifications</span>
+                <span class="nav-label">Notifications</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'accounts:profile' %}"
+               class="{% if 'accounts/profile' in request.path %}active{% endif %}"
+               title="My Profile">
+                <span class="material-icons nav-icon">account_circle</span>
+                <span class="nav-label">My Profile</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'accounts:logout' %}" title="Logout">
+                <span class="material-icons nav-icon">logout</span>
+                <span class="nav-label">Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- User footer -->
+    <div class="sidebar-user">
+        <div class="user-avatar">
+            {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+        </div>
+        <div class="user-info">
+            <div class="user-name">
+                {{ request.user.get_full_name|default:request.user.username }}
+            </div>
+            <div class="user-role">
+                {{ request.user.role.name|default:"User" }}
+            </div>
+        </div>
+    </div>
+
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════ -->
+<div id="main-content" :class="sidebarCollapsed ? 'sidebar-collapsed' : ''">
+
+    <!-- TOPBAR -->
+    <div id="topbar">
+        <div class="d-flex align-items-center gap-3">
+
+            <!-- Mobile toggle -->
+            <button class="btn btn-sm d-md-none"
+                    onclick="openMobileSidebar()"
+                    style="background:var(--surface-2);
+                           border:1px solid var(--border);
+                           border-radius:var(--radius-md);
+                           padding:.35rem .5rem;">
+                <span class="material-icons"
+                      style="font-size:20px;vertical-align:middle;
+                             color:var(--text-secondary);">menu</span>
+            </button>
+
+            <!-- Desktop collapse toggle -->
+            <button class="btn btn-sm d-none d-md-flex align-items-center"
+                    @click="sidebarCollapsed = !sidebarCollapsed;
+                            document.getElementById('main-content').classList.toggle('sidebar-collapsed')"
+                    style="background:var(--surface-2);
+                           border:1px solid var(--border);
+                           border-radius:var(--radius-md);
+                           padding:.35rem .5rem;">
+                <span class="material-icons"
+                      style="font-size:20px;color:var(--text-secondary);">menu</span>
+            </button>
+
+            <!-- Page title -->
+            <span class="page-title">{% block page_title %}{% endblock %}</span>
+
+            <!-- Global Search -->
+            <div class="d-none d-lg-block position-relative ms-3"
+                 style="width:260px;">
+                <div class="input-icon-wrap">
+                    <span class="material-icons input-icon"
+                          style="color:var(--text-muted);font-size:17px;">search</span>
+                    <input type="text"
+                           class="form-control-wms"
+                           placeholder="Search items, suppliers, projects..."
+                           style="padding-left:2.2rem;padding-top:.45rem;
+                                  padding-bottom:.45rem;font-size:.8rem;"
+                           hx-get="{% url 'reports:search' %}"
+                           hx-trigger="keyup changed delay:300ms"
+                           hx-target="#search-results"
+                           hx-include="this"
+                           name="q"
+                           @focus="open = true"
+                           @keyup.escape="open = false; $el.blur()">
+                </div>
+                <div id="search-results"
+                     style="position:absolute;top:calc(100% + 6px);left:0;
+                            right:0;z-index:3000;min-width:320px;">
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Topbar right -->
+        <div class="d-flex align-items-center gap-3">
+
+            <!-- Dark/Light toggle -->
+            <button @click="darkMode = !darkMode"
+                    style="background:none;border:none;cursor:pointer;
+                           color:var(--text-secondary);padding:.2rem;"
+                    :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+                <span class="material-icons" style="font-size:20px;vertical-align:middle;">
+                    <span x-show="darkMode">light_mode</span>
+                    <span x-show="!darkMode">dark_mode</span>
+                </span>
+            </button>
+
+            <!-- Notification bell -->
+            <div class="position-relative" id="bell-wrapper">
+                <div id="bell-content"
+                    hx-get="{% url 'notifications:count' %}"
+                    hx-trigger="load, every 30s"
+                    hx-swap="outerHTML">
+                    {# This whole div gets replaced – no dropdown inside #}
+                    <span class="material-icons"
+                        style="font-size:22px;cursor:pointer;color:var(--text-secondary);vertical-align:middle;">
+                        notifications
+                    </span>
+                </div>
+                <!-- Dropdown container is OUTSIDE the swapped element -->
+                <div id="notification-dropdown-container"
+                    style="position:absolute;top:34px;right:0;z-index:2000;min-width:360px;">
+                </div>
+            </div>
+
+            <!-- User menu -->
+            <div x-data="{ open: false }" class="position-relative">
+                <button @click="open = !open"
+                        style="background:none;border:none;cursor:pointer;
+                               display:flex;align-items:center;gap:.5rem;">
+                    <div style="width:30px;height:30px;
+                                background:linear-gradient(135deg,var(--brand-500),var(--brand-700));
+                                border-radius:50%;display:flex;
+                                align-items:center;justify-content:center;
+                                font-weight:700;font-size:.75rem;color:white;">
+                        {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+                    </div>
+                    <span class="d-none d-sm-inline"
+                          style="font-size:.82rem;font-weight:500;
+                                 color:var(--text-secondary);">
+                        {{ request.user.username }}
+                    </span>
+                    <span class="material-icons"
+                          style="font-size:16px;color:var(--text-muted);">expand_more</span>
+                </button>
+
+                <div x-show="open"
+                     @click.outside="open = false"
+                     x-transition
+                     style="position:absolute;right:0;top:38px;
+                            background:var(--surface);
+                            border:1px solid var(--border);
+                            border-radius:var(--radius-lg);
+                            box-shadow:var(--shadow-lg);
+                            min-width:200px;z-index:2000;
+                            overflow:hidden;">
+                    <a href="{% url 'accounts:profile' %}"
+                       style="display:flex;align-items:center;gap:.6rem;
+                              padding:.65rem 1rem;color:var(--text-primary);
+                              text-decoration:none;font-size:.82rem;">
+                        <span class="material-icons" style="font-size:17px;">account_circle</span>
+                        My Profile
+                    </a>
+                    <a href="{% url 'notifications:list' %}"
+                       style="display:flex;align-items:center;gap:.6rem;
+                              padding:.65rem 1rem;color:var(--text-primary);
+                              text-decoration:none;font-size:.82rem;">
+                        <span class="material-icons" style="font-size:17px;">notifications</span>
+                        Notifications
+                    </a>
+                    <div style="border-top:1px solid var(--border);margin:.3rem 0;"></div>
+                    <a href="{% url 'accounts:logout' %}"
+                       style="display:flex;align-items:center;gap:.6rem;
+                              padding:.65rem 1rem;color:#ef4444;
+                              text-decoration:none;font-size:.82rem;">
+                        <span class="material-icons" style="font-size:17px;">logout</span>
+                        Logout
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div><!-- /topbar -->
+
+    <!-- Flash messages -->
+    {% if messages %}
+    <div class="px-4 pt-3">
+        {% for message in messages %}
+        <div class="wms-alert
+                    {% if message.tags == 'success' %}wms-alert-success
+                    {% elif message.tags == 'warning' %}wms-alert-warning
+                    {% elif message.tags == 'error' %}wms-alert-danger
+                    {% else %}wms-alert-info{% endif %}"
+             x-data="{ show: true }"
+             x-show="show"
+             x-transition>
+            <span class="material-icons" style="font-size:18px;flex-shrink:0;">
+                {% if message.tags == 'success' %}check_circle
+                {% elif message.tags == 'warning' %}warning
+                {% elif message.tags == 'error' %}error
+                {% else %}info{% endif %}
+            </span>
+            <span style="flex:1;">{{ message }}</span>
+            <button @click="show = false"
+                    style="background:none;border:none;cursor:pointer;
+                           color:inherit;opacity:.6;font-size:1.1rem;
+                           line-height:1;padding:0;">✕</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Page Content -->
+    <div class="p-3 p-md-4 page-content">
+        {% block content %}{% endblock %}
+    </div>
+
+</div><!-- /main-content -->
+
+<!-- ─── Scripts ─────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+
+<script>
+    // ── AOS ────────────────────────────────────────────
+    AOS.init({ duration: 300, once: true, offset: 20 });
+
+    // ── Mobile sidebar ────────────────────────────────
+    function openMobileSidebar() {
+        document.getElementById('sidebar').classList.add('mobile-open');
+        document.getElementById('mobileOverlay').classList.add('active');
+    }
+    function closeMobileSidebar() {
+        document.getElementById('sidebar').classList.remove('mobile-open');
+        document.getElementById('mobileOverlay').classList.remove('active');
+    }
+
+    // ── Close notification dropdown outside click ─────
+    document.addEventListener('click', function(e) {
+        const container = document.getElementById('notification-dropdown-container');
+        const bellWrapper = document.getElementById('bell-wrapper');
+        if (container && bellWrapper && !bellWrapper.contains(e.target)) {
+            container.innerHTML = '';
+        }
+    });
+</script>
+
+{% if request.user.is_authenticated %}
+<!-- ─── WebSocket + Toast notification ────────────── -->
+<script>
+(function () {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/notifications/`;
+    let socket = null;
+    let reconnectDelay = 3000;
+    let reconnectTimer = null;
+
+    function connectWebSocket() {
+        try {
+            socket = new WebSocket(wsUrl);
+        } catch (e) {
+            console.warn('[WMS] WebSocket not supported. Using HTMX fallback.');
+            return;
+        }
+
+        socket.onopen = function () {
+            console.log('[WMS] Notification socket connected.');
+            reconnectDelay = 3000;
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+        };
+
+        socket.onmessage = function (e) {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'unread_count') updateBadge(data.count);
+                if (data.type === 'new_notification') {
+                    showToast(data.notification);
+                    incrementBadge();
+                }
+            } catch (err) {
+                console.warn('[WMS] Invalid message:', e.data);
+            }
+        };
+
+        socket.onclose = function () {
+            console.log('[WMS] Socket closed. Reconnecting...');
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+            reconnectTimer = setTimeout(function () {
+                connectWebSocket();
+                reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+            }, reconnectDelay);
+        };
+
+        socket.onerror = function (err) {
+            console.warn('[WMS] Socket error:', err);
+            socket.close();
+        };
+    }
+
+    function getBadge() {
+        return document.getElementById('notification-badge');
+    }
+
+    function updateBadge(count) {
+        let b = getBadge();
+        if (count === 0) {
+            if (b) b.remove();
+            return;
+        }
+        if (!b) {
+            b = document.createElement('span');
+            b.id = 'notification-badge';
+            b.style.cssText = `
+                position:absolute;top:-4px;right:-4px;
+                background:#ef4444;color:white;border-radius:50%;
+                width:18px;height:18px;font-size:.62rem;font-weight:700;
+                display:flex;align-items:center;justify-content:center;
+                box-shadow:0 1px 4px rgba(0,0,0,0.15);
+            `;
+            const wrapper = document.getElementById('bell-wrapper');
+            if (wrapper) wrapper.appendChild(b);
+        }
+        b.textContent = count > 9 ? '9+' : count;
+    }
+
+    function incrementBadge() {
+        const b = getBadge();
+        if (b) {
+            const current = parseInt(b.textContent) || 0;
+            updateBadge(current + 1);
+        } else {
+            updateBadge(1);
+        }
+    }
+
+    function showToast(n) {
+        const old = document.getElementById('wms-toast');
+        if (old) old.remove();
+
+        const colors = { success:'#22c55e', warning:'#f59e0b', danger:'#ef4444', info:'#3b82f6' };
+        const icons  = {
+            low_stock:'warning',
+            approval_required:'pending_actions',
+            approved:'check_circle',
+            rejected:'cancel',
+            goods_received:'move_to_inbox',
+            general:'notifications'
+        };
+        const color = colors[n.level] || colors.info;
+        const icon  = icons[n.type] || 'notifications';
+
+        const el = document.createElement('div');
+        el.id = 'wms-toast';
+        el.style.cssText = `
+            position:fixed;bottom:24px;right:24px;z-index:9999;
+            max-width:380px;width:90%;
+            animation:fadeIn .3s ease;
+        `;
+
+        el.innerHTML = `
+            <div style="background:var(--surface);border-radius:var(--radius-lg);
+                        box-shadow:var(--shadow-lg);border-left:4px solid ${color};
+                        padding:1rem;display:flex;gap:.75rem;align-items:flex-start;">
+                <span class="material-icons" style="color:${color};font-size:20px;flex-shrink:0;">${icon}</span>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-weight:700;font-size:.85rem;color:var(--text-primary);margin-bottom:.2rem;">${escapeHtml(n.title)}</div>
+                    <div style="font-size:.78rem;color:var(--text-secondary);line-height:1.4;">${escapeHtml(n.message)}</div>
+                    ${n.url ? `<a href="${escapeHtml(n.url)}" style="font-size:.75rem;color:var(--brand-500);text-decoration:none;margin-top:.35rem;display:inline-block;">View →</a>` : ''}
+                </div>
+                <button onclick="this.closest('#wms-toast').remove()"
+                        style="background:none;border:none;color:var(--text-muted);
+                               cursor:pointer;font-size:1rem;line-height:1;padding:0;">✕</button>
+            </div>`;
+
+        document.body.appendChild(el);
+        setTimeout(() => {
+            if (el.parentNode) el.remove();
+        }, 6000);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Start WebSocket connection
+    if (window.WebSocket) {
+        connectWebSocket();
+    } else {
+        console.warn('[WMS] WebSocket not supported – using HTMX fallback.');
+    }
+})();
+</script>
+
+{% include 'accounts/partials/welcome_modal.html' %}
+{% include 'accounts/partials/tour_script.html' %}
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

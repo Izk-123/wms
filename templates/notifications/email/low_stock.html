@@ -1,0 +1,59 @@
+{% extends 'notifications/email/base_email.html' %}
+{% block email_body %}
+
+<h2>⚠ Low Stock Alert</h2>
+
+<p>
+    Hello <strong>{{ recipient_name }}</strong>,<br>
+    The following items have fallen below their minimum stock levels
+    and require attention.
+</p>
+
+<div class="alert-box alert-danger">
+    <strong>{{ low_stock_items|length }} item(s)</strong> are currently
+    below minimum stock.
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Warehouse</th>
+            <th>Current Stock</th>
+            <th>Minimum</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for stock in low_stock_items %}
+        <tr>
+            <td>
+                <strong>{{ stock.item.name }}</strong><br>
+                <span style="font-size:.78rem;color:#94a3b8;">
+                    {{ stock.item.sku }}
+                </span>
+            </td>
+            <td>{{ stock.warehouse.name }}</td>
+            <td style="color:#dc2626;font-weight:700;">
+                {{ stock.quantity }} {{ stock.item.unit.symbol }}
+            </td>
+            <td>{{ stock.item.minimum_stock }} {{ stock.item.unit.symbol }}</td>
+            <td>
+                {% if stock.quantity == 0 %}
+                <span class="badge badge-danger">Out of Stock</span>
+                {% else %}
+                <span class="badge badge-warning">Low Stock</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<hr class="divider">
+
+<p>Please arrange a Purchase Request or stock transfer to replenish these items.</p>
+
+<a href="{{ dashboard_url }}" class="btn">View Stock Levels</a>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'notifications/email/base_email.html' %}
+{% block email_body %}
+
+<h2>🏗 Material Request Awaiting Approval</h2>
+
+<p>
+    Hello <strong>{{ recipient_name }}</strong>,<br>
+    A Material Request has been submitted and requires your approval.
+</p>
+
+<div class="alert-box alert-warning">
+    <strong>{{ mr.reference }}</strong> submitted by
+    {{ mr.requested_by.get_full_name }}
+    {% if mr.project %}
+        for project <strong>{{ mr.project.name }}</strong>
+    {% endif %}
+</div>
+
+<table class="table">
+    <tr>
+        <th>Reference</th>
+        <td>{{ mr.reference }}</td>
+    </tr>
+    <tr>
+        <th>Requested By</th>
+        <td>{{ mr.requested_by.get_full_name }}</td>
+    </tr>
+    <tr>
+        <th>Project</th>
+        <td>{{ mr.project.name|default:"General" }}</td>
+    </tr>
+    <tr>
+        <th>Warehouse</th>
+        <td>{{ mr.warehouse.name }}</td>
+    </tr>
+    <tr>
+        <th>Date Submitted</th>
+        <td>{{ mr.created_at|date:"d M Y H:i" }}</td>
+    </tr>
+</table>
+
+<h2 style="margin-top:1.5rem;">Items Requested</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for item in mr.items.all %}
+        <tr>
+            <td>{{ item.item.name }}</td>
+            <td>{{ item.quantity_requested }} {{ item.item.unit.symbol }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ mr_url }}" class="btn">Review &amp; Approve</a>
+
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block page_title %}Project Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'operations:project-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ project.name }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ project.code }} &middot; {{ project.get_project_type_display }}
+        </p>
+    </div>
+    <span class="wms-badge
+        {% if project.status == 'active' %}badge-success
+        {% elif project.status == 'planning' %}badge-warning
+        {% elif project.status == 'completed' %}badge-neutral
+        {% elif project.status == 'on_hold' %}badge-info
+        {% else %}badge-danger{% endif %}"
+        style="font-size:.85rem;padding:.4rem .8rem;">
+        {{ project.get_status_display }}
+    </span>
+    <a href="{% url 'operations:project-update' project.pk %}" class="btn-wms-primary ms-auto" style="font-size:.78rem;padding:.3rem .8rem;">
+        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span> Edit
+    </a>
+</div>
+
+<div class="row g-3 fade-in">
+    <!-- Info -->
+    <div class="col-12 col-lg-4">
+        <div class="wms-card h-100">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Project Details</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Code</td><td>{{ project.code }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Type</td><td>{{ project.get_project_type_display }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Status</td>
+                            <td><span class="wms-badge
+                                {% if project.status == 'active' %}badge-success
+                                {% elif project.status == 'planning' %}badge-warning
+                                {% elif project.status == 'completed' %}badge-neutral
+                                {% elif project.status == 'on_hold' %}badge-info
+                                {% else %}badge-danger{% endif %}">
+                                {{ project.get_status_display }}
+                            </span></td>
+                        </tr>
+                        <tr><td style="color:var(--text-muted);">Location</td><td>{{ project.site_location|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Supervisor</td><td>{{ project.supervisor.get_full_name|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Start Date</td><td>{{ project.start_date|date:"d M Y"|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">End Date</td><td>{{ project.end_date|date:"d M Y"|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Budget</td><td>MWK {{ project.budget|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Material Cost</td>
+                            <td class="fw-semibold">MWK {{ total_cost|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Created</td><td>{{ project.created_at|date:"d M Y H:i" }}</td></tr>
+                    </tbody>
+                </table>
+                {% if project.description %}
+                <p class="text-secondary-wms mt-2" style="font-size:.85rem;">{{ project.description }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Material Requests -->
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Material Requests</h6>
+                <a href="{% url 'operations:mr-create' %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+                    <span class="material-icons" style="font-size:16px;">add</span> New Request
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Reference</th>
+                            <th>Requested By</th>
+                            <th>Status</th>
+                            <th>Items</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mr in material_requests %}
+                        <tr>
+                            <td class="fw-semibold">
+                                <a href="{% url 'operations:mr-detail' mr.pk %}" class="text-primary-wms text-decoration-none">
+                                    {{ mr.reference }}
+                                </a>
+                            </td>
+                            <td>{{ mr.requested_by.get_full_name }}</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if mr.status == 'issued' %}badge-success
+                                    {% elif mr.status == 'approved' %}badge-info
+                                    {% elif mr.status == 'submitted' %}badge-warning
+                                    {% elif mr.status == 'rejected' %}badge-danger
+                                    {% elif mr.status == 'partially_issued' %}badge-info
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ mr.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ mr.items.count }}</td>
+                            <td>{{ mr.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <a href="{% url 'operations:mr-detail' mr.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;">View</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No material requests yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

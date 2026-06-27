@@ -1,0 +1,45 @@
+{# ======================================================================== #}
+{# TRANSFER STOCK — Move stock between warehouses                         #}
+{# ======================================================================== #}
+
+{% extends 'inventory/_operation_layout.html' %}
+
+{% block title %}Transfer Stock{% endblock %}
+{% block page_title %}Transfer Stock{% endblock %}
+
+{% block op_title %}Transfer Stock{% endblock %}
+{% block op_subtitle %}Move stock between warehouses or project sites{% endblock %}
+{% block submit_icon %}swap_horiz{% endblock %}
+{% block submit_label %}Transfer Stock{% endblock %}
+
+{% block form_fields %}
+<div class="row g-3">
+    <div class="col-12">
+        <label class="form-label-wms">Item <span class="text-danger">*</span></label>
+        {{ form.item }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">From Warehouse <span class="text-danger">*</span></label>
+        {{ form.from_warehouse }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">To Warehouse <span class="text-danger">*</span></label>
+        {{ form.to_warehouse }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">Quantity <span class="text-danger">*</span></label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}
+        <div class="text-danger" style="font-size:0.8rem;">{{ form.quantity.errors.0 }}</div>
+        {% endif %}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">Reference</label>
+        {{ form.reference }}
+    </div>
+    <div class="col-12">
+        <label class="form-label-wms">Notes</label>
+        {{ form.notes }}
+    </div>
+</div>
+{% endblock %}

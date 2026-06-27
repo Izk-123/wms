@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Goods Receipts{% endblock %}
+{% block page_title %}Goods Receipts{% endblock %}
+
+{% block content %}
+
+{% include 'inventory/_card_header.html' with page_title="Goods Receipt Notes" page_subtitle="All received stock entries" add_url=None add_label=None %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>GRN #</th>
+                    <th>PO #</th>
+                    <th>Supplier</th>
+                    <th>Received By</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grn in receipts %}
+                <tr>
+                    <td class="fw-semibold">{{ grn.reference }}</td>
+                    <td>
+                        <a href="{% url 'procurement:po-detail' grn.purchase_order.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ grn.purchase_order.reference }}
+                        </a>
+                    </td>
+                    <td>{{ grn.purchase_order.supplier.name }}</td>
+                    <td>{{ grn.received_by.get_full_name|default:grn.received_by.username }}</td>
+                    <td>
+                        <span class="wms-badge {% if grn.status == 'confirmed' %}badge-success{% else %}badge-warning{% endif %}">
+                            {{ grn.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ grn.received_at|date:"d M Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'procurement:grn-detail' grn.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                            <span class="material-icons" style="font-size:16px;">visibility</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">move_to_inbox</span>
+                            <h6>No goods receipts found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

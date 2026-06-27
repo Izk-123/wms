@@ -1,0 +1,49 @@
+{# ======================================================================== #}
+{# ADJUST STOCK — Correct stock balance after a physical count            #}
+{# ======================================================================== #}
+
+{% extends 'inventory/_operation_layout.html' %}
+
+{% block title %}Adjust Stock{% endblock %}
+{% block page_title %}Adjust Stock{% endblock %}
+
+{% block op_title %}Stock Adjustment{% endblock %}
+{% block op_subtitle %}Correct stock balance after a physical count{% endblock %}
+{% block submit_icon %}tune{% endblock %}
+{% block submit_label %}Save Adjustment{% endblock %}
+
+{% block form_fields %}
+<div class="row g-3">
+
+    {% if current_stock %}
+    <div class="col-12">
+        <div class="wms-alert wms-alert-info d-flex align-items-center gap-2 py-2" style="font-size:0.875rem;">
+            <span class="material-icons" style="font-size:18px;">info</span>
+            Current balance: <strong>{{ current_stock.quantity }} {{ current_stock.item.unit.symbol }}</strong>
+            in <strong>{{ current_stock.warehouse.name }}</strong>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-12">
+        <label class="form-label-wms">Item <span class="text-danger">*</span></label>
+        {{ form.item }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">Warehouse <span class="text-danger">*</span></label>
+        {{ form.warehouse }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">New Quantity (actual count) <span class="text-danger">*</span></label>
+        {{ form.new_quantity }}
+        {% if form.new_quantity.errors %}
+        <div class="text-danger" style="font-size:0.8rem;">{{ form.new_quantity.errors.0 }}</div>
+        {% endif %}
+    </div>
+    <div class="col-12">
+        <label class="form-label-wms">Reason <span class="text-danger">*</span></label>
+        {{ form.reason }}
+        <div class="text-muted-wms" style="font-size:.78rem;">This will be recorded in the audit trail.</div>
+    </div>
+</div>
+{% endblock %}

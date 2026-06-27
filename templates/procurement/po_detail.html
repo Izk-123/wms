@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}{{ po.reference }}{% endblock %}
+{% block page_title %}Purchase Order{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'procurement:po-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ po.reference }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ po.supplier.name }} &middot; Created {{ po.created_at|date:"d M Y" }}
+        </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        {% if po.status == "draft" %}
+        <form method="post" action="{% url 'procurement:po-mark-sent' po.pk %}">
+            {% csrf_token %}
+            <button class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+                <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">send</span>
+                Mark as Sent
+            </button>
+        </form>
+        {% endif %}
+        {% if po.status in "sent,partial" %}
+        <a href="{% url 'procurement:grn-create' po.pk %}" class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">move_to_inbox</span>
+            Receive Goods
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3 fade-in">
+    <div class="col-12 col-lg-4">
+        <div class="wms-card h-100">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms mb-3">Order Details</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Status</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if po.status == 'received' %}badge-success
+                                    {% elif po.status == 'sent' %}badge-info
+                                    {% elif po.status == 'partial' %}badge-warning
+                                    {% elif po.status == 'cancelled' %}badge-danger
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ po.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr><td style="color:var(--text-muted);">Supplier</td><td>{{ po.supplier.name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Warehouse</td><td>{{ po.delivery_warehouse.name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Expected</td>
+                            <td>{{ po.expected_delivery|date:"d M Y"|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Created by</td><td>{{ po.created_by.get_full_name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Total Value</td>
+                            <td class="fw-semibold">MWK {{ po.total_value|floatformat:2 }}</td></tr>
+                    </tbody>
+                </table>
+                {% if po.notes %}
+                <p class="text-secondary-wms mt-2 mb-0" style="font-size:.85rem;">{{ po.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <!-- Order Items -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-header">
+                <h6>Order Items</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Ordered</th>
+                            <th>Received</th>
+                            <th>Pending</th>
+                            <th>Unit Cost</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for poi in po.items.all %}
+                        <tr>
+                            <td>{{ poi.item.name }}</td>
+                            <td>{{ poi.quantity_ordered }} {{ poi.item.unit.symbol }}</td>
+                            <td class="text-success fw-semibold">{{ poi.quantity_received }}</td>
+                            <td class="{% if poi.quantity_pending > 0 %}text-warning fw-semibold{% endif %}">
+                                {{ poi.quantity_pending }}
+                            </td>
+                            <td>MWK {{ poi.unit_cost|floatformat:2 }}</td>
+                            <td>MWK {{ poi.total_cost|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GRNs -->
+        {% if grns %}
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Goods Receipts</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>GRN</th>
+                            <th>Received By</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for grn in grns %}
+                        <tr>
+                            <td class="fw-semibold">{{ grn.reference }}</td>
+                            <td>{{ grn.received_by.get_full_name }}</td>
+                            <td>{{ grn.received_at|date:"d M Y H:i" }}</td>
+                            <td>
+                                <span class="wms-badge {% if grn.status == 'confirmed' %}badge-success{% else %}badge-warning{% endif %}">
+                                    {{ grn.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'procurement:grn-detail' grn.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

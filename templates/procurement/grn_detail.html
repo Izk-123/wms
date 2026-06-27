@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% block title %}{{ grn.reference }}{% endblock %}
+{% block page_title %}Goods Receipt Note{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'procurement:po-detail' grn.purchase_order.pk %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ grn.reference }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            Against {{ grn.purchase_order.reference }} &middot;
+            {{ grn.purchase_order.supplier.name }}
+        </p>
+    </div>
+    {% if grn.status == "draft" %}
+    <div class="ms-auto">
+        <form method="post" action="{% url 'procurement:grn-confirm' grn.pk %}"
+              onsubmit="return confirm('Confirm this GRN? This will update warehouse stock and cannot be undone.')">
+            {% csrf_token %}
+            <button class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;">
+                <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span>
+                Confirm & Update Stock
+            </button>
+        </form>
+    </div>
+    {% else %}
+    <div class="ms-auto">
+        <span class="wms-badge badge-success" style="padding:.5rem 1rem;font-size:.85rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span>
+            Stock Updated
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+{% if grn.status == "draft" %}
+<div class="wms-alert wms-alert-warning d-flex align-items-center gap-2 mb-3" style="font-size:.875rem;">
+    <span class="material-icons" style="font-size:18px;">warning</span>
+    This GRN is a draft. Click <strong>Confirm & Update Stock</strong> to receive items into the warehouse.
+</div>
+{% endif %}
+
+<div class="wms-card">
+    <div class="wms-card-header">
+        <h6>Items Received</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Quantity Received</th>
+                    <th>Unit</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grn_item in grn.items.all %}
+                <tr>
+                    <td>{{ grn_item.purchase_order_item.item.name }}</td>
+                    <td class="fw-semibold text-success">{{ grn_item.quantity_received }}</td>
+                    <td>{{ grn_item.purchase_order_item.item.unit.symbol }}</td>
+                    <td>{{ grn_item.notes|default:"—" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

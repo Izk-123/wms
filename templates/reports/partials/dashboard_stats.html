@@ -1,0 +1,115 @@
+<div id="stats-container" hx-get="{% url 'reports:dashboard-stats' %}" hx-trigger="every 30s" hx-swap="outerHTML">
+
+    <div class="row g-3 mb-3">
+
+        <!-- Total Items -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                        <span class="material-icons" style="color:#3b82f6;">inventory_2</span>
+                    </div>
+                </div>
+                <div class="stat-value">{{ total_items }}</div>
+                <div class="stat-label">Items</div>
+            </div>
+        </div>
+
+        <!-- Warehouses -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                        <span class="material-icons" style="color:#22c55e;">warehouse</span>
+                    </div>
+                </div>
+                <div class="stat-value">{{ total_warehouses }}</div>
+                <div class="stat-label">Warehouses</div>
+            </div>
+        </div>
+
+        <!-- Stock Value -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(139,92,246,.12);">
+                        <span class="material-icons" style="color:#8b5cf6;">payments</span>
+                    </div>
+                </div>
+                <div class="stat-value" style="font-size:1.2rem;">
+                    MWK {{ stock_value|floatformat:0 }}
+                </div>
+                <div class="stat-label">Stock Value</div>
+            </div>
+        </div>
+
+        <!-- Low Stock -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                        <span class="material-icons" style="color:#ef4444;">warning</span>
+                    </div>
+                </div>
+                <div class="stat-value" style="color:{% if low_stock_count > 0 %}#ef4444{% else %}var(--text-primary){% endif %};">
+                    {{ low_stock_count }}
+                </div>
+                <div class="stat-label">Low Stock</div>
+            </div>
+        </div>
+
+        <!-- Pending Approvals -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                        <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
+                    </div>
+                </div>
+                <div class="stat-value" style="color:{% if pending_approvals > 0 %}#f59e0b{% else %}var(--text-primary){% endif %};">
+                    {{ pending_approvals }}
+                </div>
+                <div class="stat-label">Pending</div>
+            </div>
+        </div>
+
+        <!-- Active Projects -->
+        <div class="col-6 col-sm-4 col-xl-2">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="stat-icon" style="background:rgba(14,165,233,.12);">
+                        <span class="material-icons" style="color:#0ea5e9;">construction</span>
+                    </div>
+                </div>
+                <div class="stat-value">{{ active_projects }}</div>
+                <div class="stat-label">Projects</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Today's Activity Bar -->
+    <div class="wms-card mb-3 p-3">
+        <div class="row g-3 text-center">
+            <div class="col-6 col-md-3">
+                <div class="text-muted-wms" style="font-size:.78rem;">Received Today</div>
+                <div class="fw-bold text-success fs-5">{{ received_today }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted-wms" style="font-size:.78rem;">Issued Today</div>
+                <div class="fw-bold text-danger fs-5">{{ issued_today }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted-wms" style="font-size:.78rem;">Open POs</div>
+                <div class="fw-bold text-primary fs-5">{{ pending_orders }}</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="text-muted-wms" style="font-size:.78rem;">Maintenance Due</div>
+                <div class="fw-bold fs-5 {% if assets_due_maintenance > 0 %}text-warning{% endif %}">
+                    {{ assets_due_maintenance }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

@@ -1,0 +1,111 @@
+<div class="card border-0 shadow-lg"
+     style="border-radius:12px;overflow:hidden;"
+     id="notification-dropdown">
+
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between px-3 py-2
+                border-bottom"
+         style="background:#f8fafc;">
+        <span class="fw-semibold" style="font-size:.875rem;">
+            Notifications
+            {% if unread_count > 0 %}
+            <span class="badge bg-danger ms-1"
+                  style="font-size:.7rem;">
+                {{ unread_count }}
+            </span>
+            {% endif %}
+        </span>
+        {% if unread_count > 0 %}
+        <button class="btn btn-link p-0 text-secondary"
+                style="font-size:.78rem;"
+                hx-post="{% url 'notifications:mark-all-read' %}"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                hx-on::after-request="
+                    document.getElementById('notification-dropdown-container')
+                    .innerHTML='';
+                    document.getElementById('notification-badge') &&
+                    document.getElementById('notification-badge').remove()
+                ">
+            Mark all read
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Notification Items -->
+    <div style="max-height:380px;overflow-y:auto;">
+        {% for n in notifications %}
+        <div class="notification-item d-flex gap-2 px-3 py-2
+                    {% if not n.is_read %}
+                        border-start border-3 border-primary
+                    {% endif %}"
+             style="border-bottom:1px solid #f1f5f9;
+                    {% if not n.is_read %}background:#fafcff;{% endif %}
+                    cursor:pointer;"
+             {% if n.url %}
+             onclick="window.location.href='{{ n.url }}'"
+             {% endif %}
+             hx-post="{% url 'notifications:mark-read' n.pk %}"
+             hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+             hx-swap="none">
+
+            <!-- Icon -->
+            <div style="flex-shrink:0;margin-top:2px;">
+                <span class="material-icons"
+                      style="font-size:20px;
+                             {% if n.level == 'danger' %}color:#ef4444;
+                             {% elif n.level == 'warning' %}color:#f59e0b;
+                             {% elif n.level == 'success' %}color:#22c55e;
+                             {% else %}color:#3b82f6;{% endif %}">
+                    {% if n.notification_type == 'low_stock' %}warning
+                    {% elif n.notification_type == 'approval_required' %}pending_actions
+                    {% elif n.notification_type == 'approved' %}check_circle
+                    {% elif n.notification_type == 'rejected' %}cancel
+                    {% elif n.notification_type == 'goods_received' %}move_to_inbox
+                    {% else %}notifications{% endif %}
+                </span>
+            </div>
+
+            <!-- Content -->
+            <div style="flex:1;min-width:0;">
+                <div class="fw-semibold {% if not n.is_read %}text-dark{% else %}text-secondary{% endif %}"
+                     style="font-size:.82rem;
+                            white-space:nowrap;overflow:hidden;
+                            text-overflow:ellipsis;">
+                    {{ n.title }}
+                </div>
+                <div class="text-secondary"
+                     style="font-size:.78rem;line-height:1.4;
+                            display:-webkit-box;-webkit-line-clamp:2;
+                            -webkit-box-orient:vertical;overflow:hidden;">
+                    {{ n.message }}
+                </div>
+                <div class="text-secondary mt-1"
+                     style="font-size:.72rem;">
+                    {{ n.created_at|timesince }} ago
+                </div>
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="text-center text-secondary py-4"
+             style="font-size:.875rem;">
+            <span class="material-icons d-block mb-1"
+                  style="color:#cbd5e1;font-size:32px;">
+                notifications_none
+            </span>
+            No notifications yet
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center py-2 border-top"
+         style="background:#f8fafc;">
+        <a href="{% url 'notifications:list' %}"
+           class="text-primary text-decoration-none"
+           style="font-size:.8rem;">
+            View all notifications
+        </a>
+    </div>
+
+</div>

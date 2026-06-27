@@ -1,0 +1,31 @@
+{% extends 'notifications/email/base_email.html' %}
+{% block email_body %}
+
+<h2>
+    {% if status == "approved" %}✅{% else %}❌{% endif %}
+    Your Request Has Been {{ status|title }}
+</h2>
+
+<p>
+    Hello <strong>{{ recipient_name }}</strong>,<br>
+    Your {{ request_type }} has been
+    <strong>{{ status }}</strong>.
+</p>
+
+<div class="alert-box
+    {% if status == 'approved' %}alert-success
+    {% else %}alert-danger{% endif %}">
+    <strong>{{ reference }}</strong> —
+    {{ status|title }} by {{ actioned_by }}
+    on {{ actioned_at|date:"d M Y H:i" }}
+</div>
+
+{% if reason %}
+<div class="alert-box alert-warning">
+    <strong>Reason:</strong> {{ reason }}
+</div>
+{% endif %}
+
+<a href="{{ detail_url }}" class="btn">View Request</a>
+
+{% endblock %}

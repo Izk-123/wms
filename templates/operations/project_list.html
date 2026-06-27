@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Projects{% endblock %}
+{% block page_title %}Projects{% endblock %}
+
+{% block content %}
+
+{% url 'operations:project-create' as add_project_url %}
+{% include 'inventory/_card_header.html' with page_title="Projects" page_subtitle="Construction and manufacturing projects" add_url=add_project_url add_label="New Project" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by name, code or location..."
+                       hx-get="{% url 'operations:project-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#project-grid"
+                       hx-include="[name='status'],[name='type']">
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'operations:project-list' %}"
+                    hx-trigger="change"
+                    hx-target="#project-grid"
+                    hx-include="[name='q'],[name='type']">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="type" class="form-select-wms"
+                    hx-get="{% url 'operations:project-list' %}"
+                    hx-trigger="change"
+                    hx-target="#project-grid"
+                    hx-include="[name='q'],[name='status']">
+                <option value="">All Types</option>
+                {% for val, label in project_types %}
+                <option value="{{ val }}" {% if selected_type == val %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span> Filter
+            </button>
+            <a href="{% url 'operations:project-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+{# ── Project Grid ─────────────────────────────────────── #}
+<div class="row g-3" id="project-grid">
+    {% for project in projects %}
+    <div class="col-12 col-md-6 col-xl-4 fade-in" data-aos="fade-up" data-aos-delay="{{ forloop.counter0|divisibleby:3|yesno:"0,50,100" }}">
+        <div class="wms-card h-100" style="transition: all 0.25s ease;">
+            <div class="wms-card-body">
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <span class="wms-badge badge-info" style="font-size:.75rem;">
+                            {{ project.code }}
+                        </span>
+                        <h6 class="fw-semibold text-primary-wms mb-0 mt-1">{{ project.name }}</h6>
+                    </div>
+                    <span class="wms-badge
+                        {% if project.status == 'active' %}badge-success
+                        {% elif project.status == 'planning' %}badge-warning
+                        {% elif project.status == 'completed' %}badge-neutral
+                        {% elif project.status == 'on_hold' %}badge-info
+                        {% else %}badge-danger{% endif %}"
+                        style="font-size:.75rem;">
+                        {{ project.get_status_display }}
+                    </span>
+                </div>
+
+                {% if project.site_location %}
+                <p class="text-secondary-wms mb-1" style="font-size:.82rem;">
+                    <span class="material-icons" style="font-size:14px;vertical-align:middle;">location_on</span>
+                    {{ project.site_location }}
+                </p>
+                {% endif %}
+
+                {% if project.supervisor %}
+                <p class="text-secondary-wms mb-2" style="font-size:.82rem;">
+                    <span class="material-icons" style="font-size:14px;vertical-align:middle;">person</span>
+                    {{ project.supervisor.get_full_name }}
+                </p>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-wms">
+                    <span class="text-muted-wms" style="font-size:.8rem;">
+                        {{ project.get_project_type_display }}
+                    </span>
+                    <a href="{% url 'operations:project-detail' project.pk %}"
+                       class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">View</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="wms-card">
+            <div class="empty-state">
+                <span class="material-icons empty-icon">construction</span>
+                <h6>No projects found</h6>
+                <p><a href="{% url 'operations:project-create' %}" class="text-primary-wms">Create your first project</a></p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<div class="d-flex justify-content-center py-3">
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&status={{ selected_status }}&type={{ selected_type }}">«</a>
+            </li>
+            {% endif %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&status={{ selected_status }}&type={{ selected_type }}">»</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% endblock %}

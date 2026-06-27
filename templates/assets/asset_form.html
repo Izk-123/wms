@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Edit Asset{% else %}Register Asset{% endif %}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Asset{% else %}Register Asset{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-10">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'assets:asset-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <h5 class="fw-semibold mb-0 text-primary-wms">
+                {% if form.instance.pk %}Edit: {{ form.instance.name }}{% else %}Register New Asset{% endif %}
+            </h5>
+        </div>
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <!-- Basic Info -->
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger" style="font-size:0.8rem;">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Asset Number</label>
+                            <div class="text-muted-wms" style="font-size:.78rem;">Auto‑generated if left blank</div>
+                            {{ form.asset_number }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Serial Number</label>
+                            {{ form.serial_number }}
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Asset Type <span class="text-danger">*</span></label>
+                            {{ form.asset_type }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Category <span class="text-danger">*</span></label>
+                            {{ form.category }}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Brand</label>
+                            {{ form.brand }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Model Number</label>
+                            {{ form.model_number }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Condition <span class="text-danger">*</span></label>
+                            {{ form.condition }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label-wms">Description</label>
+                            {{ form.description }}
+                        </div>
+
+                        <!-- Location & Maintenance -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Location</label>
+                            {{ form.location }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Status <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Purchase Date</label>
+                            {{ form.purchase_date }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Purchase Cost (MWK)</label>
+                            {{ form.purchase_cost }}
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="form-label-wms">Next Maintenance Date</label>
+                            {{ form.next_maintenance_date }}
+                        </div>
+
+                        <!-- Photo -->
+                        <div class="col-12">
+                            <label class="form-label-wms">Photo</label>
+                            {% if form.instance.photo %}
+                            <div class="mb-2">
+                                <img src="{{ form.instance.photo.url }}" alt="Current photo"
+                                     style="max-height:120px; border-radius:4px; border:1px solid var(--border);">
+                            </div>
+                            {% endif %}
+                            {{ form.photo }}
+                            <div class="text-muted-wms" style="font-size:.78rem;">Upload an image of the asset.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            {% if form.instance.pk %}Save Changes{% else %}Register Asset{% endif %}
+                        </button>
+                        <a href="{% url 'assets:asset-list' %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

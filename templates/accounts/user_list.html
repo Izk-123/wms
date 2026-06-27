@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Management{% endblock %}
+
+{% block content %}
+
+{% url 'accounts:user-create' as add_user_url %}
+{% include 'inventory/_card_header.html' with page_title="System Users" page_subtitle="Manage J&N staff accounts" add_url=add_user_url add_label="Add User" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-5">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by name, email or employee number..."
+                       hx-get="{% url 'accounts:user-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#user-table"
+                       hx-include="[name='role']">
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="role" class="form-select-wms"
+                    hx-get="{% url 'accounts:user-list' %}"
+                    hx-trigger="change"
+                    hx-target="#user-table"
+                    hx-include="[name='q']">
+                <option value="">All Roles</option>
+                {% for role in roles %}
+                <option value="{{ role.pk }}" {% if selected_role == role.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ role.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span> Filter
+            </button>
+            <a href="{% url 'accounts:user-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="user-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Employee #</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="width:34px;height:34px;background:linear-gradient(135deg, var(--brand-500), var(--brand-700));border-radius:50%;
+                                        display:flex;align-items:center;justify-content:center;
+                                        font-weight:700;font-size:.8rem;color:#fff;flex-shrink:0;">
+                                {{ u.first_name|first|upper }}{{ u.last_name|first|upper }}
+                            </div>
+                            <div>
+                                <div class="fw-semibold text-primary-wms">{{ u.get_full_name|default:u.username }}</div>
+                                <div class="text-muted-wms" style="font-size:.78rem;">@{{ u.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ u.employee_number|default:"—" }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        <span class="wms-badge badge-info">{{ u.role.name|default:"No Role" }}</span>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="wms-badge badge-success">Active</span>
+                        {% else %}
+                        <span class="wms-badge badge-danger">Inactive</span>
+                        {% endif %}
+                        {% if u.must_change_password %}
+                        <span class="wms-badge badge-warning" style="font-size:.65rem;">Temp Password</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'accounts:user-detail' u.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            <a href="{% url 'accounts:user-update' u.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                            {% if u != request.user %}
+                            <form method="post" action="{% url 'accounts:user-deactivate' u.pk %}" class="d-inline"
+                                  onsubmit="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} this user?')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
+                                    <span class="material-icons" style="font-size:16px;">
+                                        {% if u.is_active %}person_off{% else %}person{% endif %}
+                                    </span>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">people</span>
+                            <h6>No users found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&role={{ selected_role }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&role={{ selected_role }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}{{ supplier.name }}{% endblock %}
+{% block page_title %}Supplier Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'procurement:supplier-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <h5 class="fw-semibold mb-0 text-primary-wms">{{ supplier.name }}</h5>
+    <span class="wms-badge {% if supplier.is_active %}badge-success{% else %}badge-danger{% endif %}">
+        {% if supplier.is_active %}Active{% else %}Inactive{% endif %}
+    </span>
+    <a href="{% url 'procurement:supplier-update' supplier.pk %}" class="btn-wms-primary ms-auto" style="font-size:.78rem;padding:.3rem .8rem;">
+        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span> Edit
+    </a>
+</div>
+
+<div class="row g-3 fade-in">
+    <!-- Info -->
+    <div class="col-12 col-lg-4">
+        <div class="wms-card h-100">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Contact Details</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Contact Person</td><td>{{ supplier.contact_person|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Email</td><td>{{ supplier.email|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Phone</td><td>{{ supplier.phone|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Address</td><td>{{ supplier.address|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Added</td><td>{{ supplier.created_at|date:"d M Y" }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Purchase Orders -->
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Recent Purchase Orders</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>PO #</th>
+                            <th>Status</th>
+                            <th>Total Value</th>
+                            <th>Date</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for po in purchase_orders %}
+                        <tr>
+                            <td class="fw-semibold">{{ po.reference }}</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if po.status == 'received' %}badge-success
+                                    {% elif po.status == 'sent' %}badge-info
+                                    {% elif po.status == 'partial' %}badge-warning
+                                    {% elif po.status == 'cancelled' %}badge-danger
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ po.get_status_display }}
+                                </span>
+                            </td>
+                            <td>MWK {{ po.total_value|floatformat:2 }}</td>
+                            <td>{{ po.created_at|date:"d M Y" }}</td>
+                            <td>
+                                <a href="{% url 'procurement:po-detail' po.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;">View</a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No purchase orders yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

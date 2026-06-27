@@ -1,0 +1,67 @@
+{% extends 'notifications/email/base_email.html' %}
+{% block email_body %}
+
+<h2>📦 Goods Received — {{ grn.reference }}</h2>
+
+<p>
+    Hello <strong>{{ recipient_name }}</strong>,<br>
+    Goods have been received and stock has been updated.
+</p>
+
+<div class="alert-box alert-success">
+    <strong>{{ grn.reference }}</strong> confirmed by
+    {{ grn.received_by.get_full_name }}
+</div>
+
+<table class="table">
+    <tr>
+        <th>GRN Reference</th>
+        <td>{{ grn.reference }}</td>
+    </tr>
+    <tr>
+        <th>Purchase Order</th>
+        <td>{{ grn.purchase_order.reference }}</td>
+    </tr>
+    <tr>
+        <th>Supplier</th>
+        <td>{{ grn.purchase_order.supplier.name }}</td>
+    </tr>
+    <tr>
+        <th>Warehouse</th>
+        <td>{{ grn.purchase_order.delivery_warehouse.name }}</td>
+    </tr>
+    <tr>
+        <th>Received By</th>
+        <td>{{ grn.received_by.get_full_name }}</td>
+    </tr>
+    <tr>
+        <th>Date</th>
+        <td>{{ grn.received_at|date:"d M Y H:i" }}</td>
+    </tr>
+</table>
+
+<h2 style="margin-top:1.5rem;">Items Received</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Unit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for grn_item in grn.items.all %}
+        <tr>
+            <td>{{ grn_item.purchase_order_item.item.name }}</td>
+            <td class="text-success" style="font-weight:700;">
+                {{ grn_item.quantity_received }}
+            </td>
+            <td>{{ grn_item.purchase_order_item.item.unit.symbol }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ grn_url }}" class="btn">View GRN</a>
+
+{% endblock %}

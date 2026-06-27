@@ -1,0 +1,20 @@
+{# Bell icon with unread badge – HTMX replaces this entire block #}
+<span class="material-icons"
+      style="font-size:22px;cursor:pointer;color:var(--text-secondary);vertical-align:middle;"
+      hx-get="{% url 'notifications:dropdown' %}"
+      hx-trigger="click"
+      hx-target="#notification-dropdown-container"
+      hx-swap="innerHTML">
+    notifications
+</span>
+
+{% if unread_count > 0 %}
+<span id="notification-badge"
+      style="position:absolute;top:-4px;right:-4px;
+             background:#ef4444;color:white;border-radius:50%;
+             width:18px;height:18px;font-size:.62rem;font-weight:700;
+             display:flex;align-items:center;justify-content:center;
+             box-shadow:0 1px 4px rgba(0,0,0,0.15);">
+    {% if unread_count > 9 %}9+{% else %}{{ unread_count }}{% endif %}
+</span>
+{% endif %}

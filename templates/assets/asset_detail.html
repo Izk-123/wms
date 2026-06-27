@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+{% block title %}{{ asset.name }}{% endblock %}
+{% block page_title %}Asset Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'assets:asset-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ asset.name }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ asset.asset_number }}
+            {% if asset.serial_number %}&middot; S/N: {{ asset.serial_number }}{% endif %}
+        </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        <a href="{% url 'assets:asset-update' asset.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span> Edit
+        </a>
+        <a href="{% url 'assets:maintenance-create' asset.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">build</span> Log Maintenance
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 fade-in">
+
+    <!-- Asset Info -->
+    <div class="col-12 col-lg-4">
+        <div class="wms-card mb-3">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms mb-3">Asset Information</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Status</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if asset.status == 'available' %}badge-success
+                                    {% elif asset.status == 'assigned' %}badge-info
+                                    {% elif asset.status == 'under_maintenance' %}badge-warning
+                                    {% elif asset.status == 'lost' %}badge-danger
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ asset.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr><td style="color:var(--text-muted);">Type</td><td>{{ asset.get_asset_type_display }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Category</td><td>{{ asset.category.name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Brand</td><td>{{ asset.brand|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Model</td><td>{{ asset.model_number|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Condition</td><td>{{ asset.get_condition_display }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Location</td><td>{{ asset.location|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Purchase Cost</td><td>MWK {{ asset.purchase_cost|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Next Maintenance</td>
+                            <td>{{ asset.next_maintenance_date|date:"d M Y"|default:"—" }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Assign / Return Card -->
+        {% if asset.status == "available" %}
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Assign Asset</h6>
+            </div>
+            <div class="wms-card-body">
+                <form method="post" action="{% url 'assets:asset-assign' asset.pk %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label-wms">Assign To</label>
+                        {{ assign_form.assigned_to }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">Project (optional)</label>
+                        {{ assign_form.project }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">Expected Return</label>
+                        {{ assign_form.expected_return_date }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">Notes</label>
+                        {{ assign_form.notes }}
+                    </div>
+                    <button type="submit" class="btn-wms-primary w-100">
+                        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">assignment_ind</span>
+                        Assign Asset
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% elif asset.status == "assigned" and current_assignment %}
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Currently Assigned</h6>
+            </div>
+            <div class="wms-card-body">
+                <p class="fw-semibold text-primary-wms mb-1">{{ current_assignment.assigned_to.get_full_name }}</p>
+                {% if current_assignment.project %}
+                <p class="text-secondary-wms mb-1" style="font-size:.82rem;">
+                    Project: {{ current_assignment.project.name }}
+                </p>
+                {% endif %}
+                <p class="text-secondary-wms mb-3" style="font-size:.82rem;">
+                    Since: {{ current_assignment.assigned_at|date:"d M Y" }}
+                    {% if current_assignment.expected_return_date %}
+                    &middot; Due: {{ current_assignment.expected_return_date|date:"d M Y" }}
+                    {% endif %}
+                </p>
+
+                <form method="post" action="{% url 'assets:asset-return' asset.pk %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="form-label-wms">Return Condition</label>
+                        {{ return_form.return_condition }}
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">Return Notes</label>
+                        {{ return_form.return_notes }}
+                    </div>
+                    <button type="submit" class="btn-wms-primary w-100" style="background:#f59e0b;color:#0f172a;">
+                        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">assignment_return</span>
+                        Check In Asset
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- History & Maintenance -->
+    <div class="col-12 col-lg-8">
+
+        <!-- Assignment History -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-header">
+                <h6>Assignment History</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Assigned To</th>
+                            <th>Project</th>
+                            <th>From</th>
+                            <th>Returned</th>
+                            <th>Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in assignment_history %}
+                        <tr {% if a.is_active %}style="background:var(--info-bg);"{% endif %}>
+                            <td>
+                                {{ a.assigned_to.get_full_name }}
+                                {% if a.is_active %}
+                                <span class="wms-badge badge-info ms-1" style="font-size:.7rem;">Active</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ a.project.name|default:"—" }}</td>
+                            <td>{{ a.assigned_at|date:"d M Y" }}</td>
+                            <td>{{ a.returned_at|date:"d M Y"|default:"—" }}</td>
+                            <td>{{ a.get_return_condition_display|default:"—" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No assignment history.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Maintenance Records -->
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Maintenance Records</h6>
+                <a href="{% url 'assets:maintenance-create' asset.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+                    <span class="material-icons" style="font-size:16px;vertical-align:middle;">add</span> Add Record
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Scheduled</th>
+                            <th>Status</th>
+                            <th>Performed By</th>
+                            <th>Cost</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in maintenance_records %}
+                        <tr>
+                            <td>{{ record.get_maintenance_type_display }}</td>
+                            <td>{{ record.scheduled_date|date:"d M Y" }}</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if record.status == 'completed' %}badge-success
+                                    {% elif record.status == 'in_progress' %}badge-warning
+                                    {% elif record.status == 'cancelled' %}badge-danger
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ record.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ record.performed_by|default:"—" }}</td>
+                            <td>{% if record.cost %}MWK {{ record.cost|floatformat:2 }}{% else %}—{% endif %}</td>
+                            <td>
+                                <a href="{% url 'assets:maintenance-update' record.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;" title="Edit">
+                                    <span class="material-icons" style="font-size:16px;">edit</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No maintenance records yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

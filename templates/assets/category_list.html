@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Asset Categories{% endblock %}
+{% block page_title %}Asset Categories{% endblock %}
+
+{% block content %}
+
+{% url 'assets:category-create' as add_category_url %}
+{% include 'inventory/_card_header.html' with page_title="Asset Categories" page_subtitle="Manage asset categories" add_url=add_category_url add_label="Add Category" %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Assets</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ category.name }}</td>
+                    <td>{{ category.description|default:"—" }}</td>
+                    <td>{{ category.assets.count }}</td>
+                    <td>
+                        <a href="{% url 'assets:category-update' category.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">category</span>
+                            <h6>No categories found</h6>
+                            <p><a href="{% url 'assets:category-create' %}" class="text-primary-wms">Add your first category</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
