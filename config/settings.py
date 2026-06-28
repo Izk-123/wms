@@ -15,7 +15,8 @@ INSTALLED_APPS = [
     'unfold',
     'unfold.contrib.filters',
     'unfold.contrib.forms',
-
+    
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,7 +29,6 @@ INSTALLED_APPS = [
     'django_filters',
     'django_htmx',
     'axes',
-    'daphne',
     'channels',
 
     'notifications',
