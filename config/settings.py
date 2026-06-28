@@ -7,7 +7,8 @@ from django.urls import reverse_lazy
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
-DEBUG = config('DEBUG', default=False, cast=bool)
+# DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = True
 ALLOWED_HOSTS = ['wms.jandn.mw', '204.168.251.91', 'localhost']
 print("🔍 ALLOWED_HOSTS is:", ALLOWED_HOSTS)   # <-- add this
 
