@@ -16,7 +16,6 @@ INSTALLED_APPS = [
     'unfold.contrib.filters',
     'unfold.contrib.forms',
 
-    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -29,6 +28,7 @@ INSTALLED_APPS = [
     'django_filters',
     'django_htmx',
     'axes',
+    'daphne',
     'channels',
 
     'notifications',
@@ -256,26 +256,5 @@ UNFOLD = {
                 ],
             },
         ],
-    },
-}
-
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django.security.DisallowedHost': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-        },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'ERROR',
-            'propagate': False,
-        },
     },
 }
