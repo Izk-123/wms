@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User
+from company_settings.numbering import generate_next_number
 
 
 class Category(models.Model):
@@ -124,7 +125,7 @@ class Item(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.pk and not self.sku:
-            self.sku = self.generate_sku()
+            self.sku = generate_next_number("SKU_PREFIX", Item, field="sku", padding=5)
         super().save(*args, **kwargs)
 
 

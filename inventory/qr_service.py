@@ -1,10 +1,11 @@
 import qrcode
+import barcode
+from barcode.writer import ImageWriter
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.conf import settings
 import json
 import os
-
 
 def generate_qr_code(item):
     """
@@ -43,10 +44,6 @@ def generate_barcode(item):
     Generate a Code128 barcode for an inventory item using the SKU.
     Returns a ContentFile suitable for saving to an ImageField.
     """
-    # Import barcode only when this function is called (avoids pkg_resources error on module load)
-    import barcode
-    from barcode.writer import ImageWriter
-
     # Clean SKU — barcode cannot have spaces or special chars
     sku_clean = item.sku.replace(' ', '-').replace('/', '-')
 
@@ -69,7 +66,6 @@ def generate_barcode(item):
         return ContentFile(buffer.read(), name=filename)
 
     except Exception as e:
-        # Optionally log the error (e.g., print or use logging)
         return None
 
 

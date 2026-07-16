@@ -1,4 +1,6 @@
 # procurement/views.py
+from datetime import timezone
+
 from django.views.generic import (
     ListView, CreateView, UpdateView, DetailView, View
 )
@@ -8,6 +10,8 @@ from django.urls import reverse_lazy, reverse
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 
+from company_settings.models import ApprovalRequest
+from company_settings.services import approve_request, create_approval_request, get_approval_required, reject_request, user_can_approve
 from core.mixins import WMSPermissionMixin
 from accounts.views import log_activity
 
@@ -165,51 +169,84 @@ class PurchaseRequestDetailView(LoginRequiredMixin, DetailView):
         ctx['reject_form'] = RejectRequestForm()
         return ctx
 
-
 class PurchaseRequestActionView(WMSPermissionMixin, View):
     permission_required = 'procurement.approve_purchaserequest'
 
     def post(self, request, pk, action):
         pr = get_object_or_404(PurchaseRequest, pk=pk)
-        try:
-            if action == "submit":
-                submit_purchase_request(pr, request.user)
-                log_activity(
-                    request.user,
-                    f"Submitted PR {pr.reference} for approval",
-                    "Procurement",
-                    request=request
-                )
-                messages.success(request, f"{pr.reference} submitted for approval.")
 
-            elif action == "approve":
-                approve_purchase_request(pr, request.user)
-                log_activity(
-                    request.user,
-                    f"Approved PR {pr.reference}",
-                    "Procurement",
-                    request=request
+        if action == "submit":
+            # Check if approval is needed
+            amount = pr.items.aggregate(total=Sum('estimated_total'))['total'] or 0
+            required_role = get_approval_required('purchase_request', amount)
+            if required_role and not user_can_approve(request.user, 'purchase_request', amount):
+                pr.status = 'pending_approval'
+                pr.save()
+                create_approval_request(
+                    user=request.user,
+                    action='purchase_request',
+                    amount=amount,
+                    reference=pr.reference,
+                    notes=f"Purchase Request {pr.reference}",
+                    content_object=pr
                 )
-                messages.success(request, f"{pr.reference} approved.")
+                messages.info(request, "PR submitted for approval.")
+            else:
+                # No approval needed or user can self-approve
+                pr.status = 'approved'
+                pr.approved_by = request.user
+                pr.approved_at = timezone.now()
+                pr.save()
+                messages.success(request, "PR approved.")
+            return redirect('procurement:pr-detail', pk=pk)
 
-            elif action == "reject":
-                form = RejectRequestForm(request.POST)
-                if form.is_valid():
-                    reject_purchase_request(
-                        pr, request.user, form.cleaned_data['reason']
-                    )
-                    log_activity(
-                        request.user,
-                        f"Rejected PR {pr.reference}",
-                        "Procurement",
-                        request=request
-                    )
-                    messages.success(request, f"{pr.reference} rejected.")
-                else:
-                    messages.error(request, "Please provide a rejection reason.")
-                    return redirect('procurement:pr-detail', pk=pk)
-        except ValidationError as e:
-            messages.error(request, str(e))
+        elif action == "approve":
+            # Ensure user can approve
+            amount = pr.items.aggregate(total=Sum('estimated_total'))['total'] or 0
+            if not user_can_approve(request.user, 'purchase_request', amount):
+                messages.error(request, "You do not have permission to approve this PR.")
+                return redirect('procurement:pr-detail', pk=pk)
+
+            approval_request = ApprovalRequest.objects.filter(
+                action='purchase_request',
+                object_id=pr.pk,
+                status='pending'
+            ).first()
+
+            try:
+                if approval_request:
+                    approve_request(approval_request, request.user)
+                pr.status = 'approved'
+                pr.approved_by = request.user
+                pr.approved_at = timezone.now()
+                pr.save()
+                messages.success(request, "PR approved.")
+            except ValidationError as e:
+                messages.error(request, str(e))
+
+        elif action == "reject":
+            form = RejectRequestForm(request.POST)
+            if form.is_valid():
+                reason = form.cleaned_data['reason']
+                approval_request = ApprovalRequest.objects.filter(
+                    action='purchase_request',
+                    object_id=pr.pk,
+                    status='pending'
+                ).first()
+                try:
+                    if approval_request:
+                        reject_request(approval_request, request.user, reason)
+                    pr.status = 'rejected'
+                    pr.approved_by = request.user
+                    pr.approved_at = timezone.now()
+                    pr.rejection_reason = reason
+                    pr.save()
+                    messages.success(request, "PR rejected.")
+                except ValidationError as e:
+                    messages.error(request, str(e))
+            else:
+                messages.error(request, "Please provide a rejection reason.")
+
         return redirect('procurement:pr-detail', pk=pk)
 
 

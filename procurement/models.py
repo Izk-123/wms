@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User
+from company_settings.numbering import generate_next_number
 from inventory.models import Item, Warehouse
 
 
@@ -64,7 +65,7 @@ class PurchaseRequest(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = f"PR-{self.pk:04d}"
+            self.reference = generate_next_number("PR_PREFIX", PurchaseRequest, padding=6)
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
@@ -143,7 +144,7 @@ class PurchaseOrder(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = f"PO-{self.pk:04d}"
+            self.reference = generate_next_number("PO_PREFIX", PurchaseOrder, padding=6)
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
@@ -216,7 +217,7 @@ class GoodsReceipt(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = f"GRN-{self.pk:04d}"
+            self.reference = generate_next_number("GRN_PREFIX", GoodsReceipt, padding=6)
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
