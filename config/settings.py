@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     'axes',
     'channels',
 
+    # Our apps
     'notifications',
     'accounts',
     'inventory',
@@ -38,6 +39,10 @@ INSTALLED_APPS = [
     'operations',
     'assets',
     'reports',
+    'sales',
+    'finance',
+    'company_settings',
+    'hr',
 ]
 
 # ── Middleware ─────────────────────────────────────────
@@ -69,6 +74,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'accounts.context_processors.tutorial_context',
+                "company_settings.context_processors.company_settings",
             ],
         },
     },
