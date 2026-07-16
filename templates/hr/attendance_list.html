@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Attendance{% endblock %}
+{% block page_title %}Attendance Records{% endblock %}
+
+{% block content %}
+
+{# ── Clock In/Out Quick Actions ──────────────────────── #}
+<div class="row g-2 mb-4">
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-body d-flex align-items-center justify-content-between py-2">
+                <span class="text-secondary-wms">Quick Clock</span>
+                <div class="d-flex gap-2">
+                    <form method="post" action="{% url 'hr:attendance-clock' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="clock_in">
+                        <button type="submit" class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;">
+                            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">login</span> Clock In
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'hr:attendance-clock' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="clock_out">
+                        <button type="submit" class="btn-wms-primary" style="background:#ef4444;font-size:.78rem;padding:.3rem .8rem;">
+                            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">logout</span> Clock Out
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms" style="font-size:.72rem;color:var(--text-muted);">From</label>
+            <input type="date" name="date_from" value="{{ request.GET.date_from }}" class="form-control-wms" style="padding:.4rem .7rem;">
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms" style="font-size:.72rem;color:var(--text-muted);">To</label>
+            <input type="date" name="date_to" value="{{ request.GET.date_to }}" class="form-control-wms" style="padding:.4rem .7rem;">
+        </div>
+        <div class="col-12 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span> Filter
+            </button>
+            <a href="{% url 'hr:attendance-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Date</th>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                    <th>Hours</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for att in attendance_records %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ att.employee.full_name }}</td>
+                    <td>{{ att.date|date:"d M Y" }}</td>
+                    <td>{{ att.clock_in|date:"H:i"|default:"—" }}</td>
+                    <td>{{ att.clock_out|date:"H:i"|default:"—" }}</td>
+                    <td>{{ att.hours_worked|floatformat:1 }}</td>
+                    <td>
+                        {% if att.is_late %}
+                        <span class="wms-badge badge-warning">Late</span>
+                        {% elif att.clock_out %}
+                        <span class="wms-badge badge-success">Present</span>
+                        {% elif att.clock_in %}
+                        <span class="wms-badge badge-info">Checked In</span>
+                        {% else %}
+                        <span class="wms-badge badge-neutral">Absent</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">access_time</span>
+                            <h6>No attendance records found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&date_from={{ request.GET.date_from }}&date_to={{ request.GET.date_to }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

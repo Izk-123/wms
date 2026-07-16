@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}{% if form.instance.pk %}Edit Leave Request{% else %}New Leave Request{% endif %}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Leave{% else %}New Leave Request{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-6">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'hr:leave-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <h5 class="fw-semibold mb-0 text-primary-wms">
+                {% if form.instance.pk %}Edit {{ form.instance.reference }}{% else %}New Leave Request{% endif %}
+            </h5>
+        </div>
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            {% if form.instance.pk %}Save Changes{% else %}Submit Request{% endif %}
+                        </button>
+                        <a href="{% url 'hr:leave-list' %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

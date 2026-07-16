@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% block title %}Leave Requests{% endblock %}
+{% block page_title %}Leave Management{% endblock %}
+
+{% block content %}
+
+{% url 'hr:leave-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Leave Requests" page_subtitle="Manage employee leave" add_url=add_url add_label="New Request" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'hr:leave-list' %}"
+                    hx-trigger="change"
+                    hx-target="#leave-table">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'hr:leave-list' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="leave-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Type</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Days</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in requests %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ req.employee.full_name }}</td>
+                    <td>{{ req.leave_type.name }}</td>
+                    <td>{{ req.start_date|date:"d M Y" }}</td>
+                    <td>{{ req.end_date|date:"d M Y" }}</td>
+                    <td>{{ req.days }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if req.status == 'approved' %}badge-success
+                            {% elif req.status == 'pending' %}badge-warning
+                            {% elif req.status == 'rejected' %}badge-danger
+                            {% else %}badge-neutral{% endif %}">
+                            {{ req.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'hr:leave-detail' req.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                            <span class="material-icons" style="font-size:16px;">visibility</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">event</span>
+                            <h6>No leave requests found</h6>
+                            <p><a href="{% url 'hr:leave-create' %}" class="text-primary-wms">Submit a new request</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
