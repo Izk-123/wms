@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User
+from company_settings.numbering import generate_next_number
 from inventory.models import Item, Warehouse
 
 
@@ -124,7 +125,7 @@ class MaterialRequest(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = f"MR-{self.pk:04d}"
+            self.reference = generate_next_number("MR_PREFIX", MaterialRequest, padding=6)
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
@@ -188,7 +189,7 @@ class MaterialReturn(models.Model):
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = f"RTN-{self.pk:04d}"
+            self.reference = generate_next_number("RETURN_PREFIX", MaterialReturn, padding=6)
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)

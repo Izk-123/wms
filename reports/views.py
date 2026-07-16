@@ -1,3 +1,4 @@
+# reports/views.py
 from django.views.generic import ListView, View, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
@@ -12,6 +13,11 @@ from operations.models import Project, MaterialRequest
 from assets.models import Asset
 from accounts.models import User
 
+# ─── NEW IMPORTS ──────────────────────────────────────────
+from sales.models import Invoice, Payment, SalesOrder
+from finance.models import Account, JournalLine, Expense
+from hr.models import Employee, LeaveRequest, Attendance
+
 
 # ─────────────────────────────────────────
 # HELPERS
@@ -21,12 +27,13 @@ def get_dashboard_stats():
     """Central function — used by dashboard and HTMX partial."""
     today = timezone.now().date()
     thirty_days_ago = today - timedelta(days=30)
-    
+
     # ── Chart data — last 7 days ─────────────────────
     from django.db.models.functions import TruncDate
-    chart_in  = []
-    chart_out = []
 
+    # Stock movement chart
+    chart_in = []
+    chart_out = []
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
         day_in = StockMovement.objects.filter(
@@ -38,7 +45,16 @@ def get_dashboard_stats():
         chart_in.append(day_in)
         chart_out.append(day_out)
 
-    # Inventory
+    # Sales chart (daily sales amount)
+    sales_chart = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        day_sales = Payment.objects.filter(
+            payment_date__date=day
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        sales_chart.append(float(day_sales))
+
+    # ── Inventory ──────────────────────────────────────
     total_items = Item.objects.filter(is_active=True).count()
     total_warehouses = Warehouse.objects.filter(is_active=True).count()
     low_stock_items = Stock.objects.filter(
@@ -46,34 +62,30 @@ def get_dashboard_stats():
         item__minimum_stock__gt=0
     ).select_related('item', 'warehouse')
     low_stock_count = low_stock_items.count()
-
-    # Stock value
     stock_value = Stock.objects.aggregate(
         total=Sum(F('quantity') * F('item__unit_cost'))
     )['total'] or 0
 
-    # Movements today
+    # ── Movements Today ────────────────────────────────
     received_today = StockMovement.objects.filter(
-        movement_type='IN',
-        created_at__date=today
+        movement_type='IN', created_at__date=today
     ).count()
     issued_today = StockMovement.objects.filter(
-        movement_type='OUT',
-        created_at__date=today
+        movement_type='OUT', created_at__date=today
     ).count()
 
-    # Procurement
+    # ── Procurement ────────────────────────────────────
     pending_orders = PurchaseOrder.objects.filter(
         status__in=('draft', 'sent')
     ).count()
-    pending_approvals = MaterialRequest.objects.filter(
+    pending_pr_approvals = MaterialRequest.objects.filter(
         status='submitted'
     ).count()
 
-    # Projects
+    # ── Projects ──────────────────────────────────────
     active_projects = Project.objects.filter(status='active').count()
 
-    # Assets
+    # ── Assets ────────────────────────────────────────
     assets_assigned = Asset.objects.filter(status='assigned').count()
     assets_due_maintenance = Asset.objects.filter(
         next_maintenance_date__lte=today + timedelta(days=7),
@@ -81,12 +93,54 @@ def get_dashboard_stats():
         status__in=('available', 'assigned')
     ).count()
 
-    # Recent movements
+    # ── Sales ──────────────────────────────────────────
+    today_sales = Payment.objects.filter(
+        payment_date__date=today
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    outstanding_invoices = Invoice.objects.filter(
+        status__in=('sent', 'partially_paid')
+    ).count()
+    pending_sales_orders = SalesOrder.objects.filter(
+        status__in=('draft', 'pending_approval')
+    ).count()
+
+    # ── Finance ──────────────────────────────────────────
+    # Cash balance (account code '1000')
+    cash_balance = JournalLine.objects.filter(
+        account__code='1000'
+    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0
+    # Bank balance (account code '1010')
+    bank_balance = JournalLine.objects.filter(
+        account__code='1010'
+    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0
+    # Expenses this month
+    month_start = today.replace(day=1)
+    expenses_this_month = Expense.objects.filter(
+        created_at__date__gte=month_start,
+        created_at__date__lte=today,
+        status='paid'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    pending_expenses = Expense.objects.filter(
+        status__in=('pending_approval', 'approved')
+    ).count()
+
+    # ── HR ──────────────────────────────────────────────
+    total_employees = Employee.objects.filter(is_active=True).count()
+    pending_leave_requests = LeaveRequest.objects.filter(status='pending').count()
+    employees_on_leave_today = LeaveRequest.objects.filter(
+        status='approved',
+        start_date__lte=today,
+        end_date__gte=today
+    ).count()
+    clocked_in_today = Attendance.objects.filter(date=today, clock_in__isnull=False).count()
+
+    # ── Recent Movements ────────────────────────────────
     recent_movements = StockMovement.objects.select_related(
         'item', 'warehouse', 'created_by'
     ).order_by('-created_at')[:8]
 
     return {
+        # Inventory
         'total_items': total_items,
         'total_warehouses': total_warehouses,
         'low_stock_count': low_stock_count,
@@ -94,21 +148,39 @@ def get_dashboard_stats():
         'stock_value': stock_value,
         'received_today': received_today,
         'issued_today': issued_today,
+        # Procurement
         'pending_orders': pending_orders,
-        'pending_approvals': pending_approvals,
+        'pending_pr_approvals': pending_pr_approvals,
+        # Projects
         'active_projects': active_projects,
+        # Assets
         'assets_assigned': assets_assigned,
         'assets_due_maintenance': assets_due_maintenance,
-        'recent_movements': recent_movements,
-        'movement_chart_in':  chart_in,
+        # Sales
+        'today_sales': today_sales,
+        'outstanding_invoices': outstanding_invoices,
+        'pending_sales_orders': pending_sales_orders,
+        # Finance
+        'cash_balance': cash_balance,
+        'bank_balance': bank_balance,
+        'expenses_this_month': expenses_this_month,
+        'pending_expenses': pending_expenses,
+        # HR
+        'total_employees': total_employees,
+        'pending_leave_requests': pending_leave_requests,
+        'employees_on_leave_today': employees_on_leave_today,
+        'clocked_in_today': clocked_in_today,
+        # Charts
+        'movement_chart_in': chart_in,
         'movement_chart_out': chart_out,
+        'sales_chart': sales_chart,
+        # Recent
+        'recent_movements': recent_movements,
         'today': today,
     }
 
 
-# ─────────────────────────────────────────
-# DASHBOARD
-# ─────────────────────────────────────────
+# ─── DASHBOARD VIEWS ─────────────────────────────────────
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
@@ -121,7 +193,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
 class DashboardStatsPartialView(LoginRequiredMixin, View):
     """HTMX endpoint — refreshes stat cards every 30s."""
-
     def get(self, request):
         context = get_dashboard_stats()
         return render(request, 'reports/partials/dashboard_stats.html', context)
