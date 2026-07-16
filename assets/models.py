@@ -1,5 +1,6 @@
 from django.db import models
 from accounts.models import User
+from company_settings.numbering import generate_next_number
 from operations.models import Project
 
 
@@ -104,6 +105,11 @@ class Asset(models.Model):
         return self.assignments.filter(
             returned_at__isnull=True
         ).first()
+        
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.asset_number:
+            self.asset_number = generate_next_number("ASSET_PREFIX", Asset, field="asset_number", padding=5)
+        super().save(*args, **kwargs)
 
 
 class AssetAssignment(models.Model):

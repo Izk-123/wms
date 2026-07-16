@@ -15,6 +15,40 @@ class Command(BaseCommand):
         'Asset Officer':        'Asset Officer',
         'Management':           'Management',
     }
+    
+    # In your group sync script
+    group_permissions = {
+        'System Administrator': [
+            'hr.view_department', 'hr.add_department', 'hr.change_department', 'hr.delete_department',
+            'hr.view_position', 'hr.add_position', 'hr.change_position', 'hr.delete_position',
+            'hr.view_employee', 'hr.add_employee', 'hr.change_employee', 'hr.delete_employee',
+            'hr.view_leaverequest', 'hr.add_leaverequest', 'hr.manage_leave',
+            'hr.view_attendance', 'hr.manage_attendance',
+        ],
+        'HR Manager': [
+            'hr.view_department', 'hr.change_department',
+            'hr.view_position', 'hr.change_position',
+            'hr.view_employee', 'hr.add_employee', 'hr.change_employee',
+            'hr.view_leaverequest', 'hr.manage_leave',
+            'hr.view_attendance',
+        ],
+        'HR Officer': [
+            'hr.view_department',
+            'hr.view_position',
+            'hr.view_employee', 'hr.add_employee', 'hr.change_employee',
+            'hr.view_leaverequest', 'hr.add_leaverequest',
+            'hr.view_attendance',
+        ],
+        'Department Manager': [
+            'hr.view_employee',
+            'hr.view_leaverequest', 'hr.manage_leave',  # Can approve leave for their department
+            'hr.view_attendance',
+        ],
+        'Employee': [
+            'hr.view_leaverequest', 'hr.add_leaverequest',
+            'hr.view_attendance',
+        ],
+    }
 
     def handle(self, *args, **options):
         for user in User.objects.select_related('role').all():
