@@ -46,12 +46,12 @@ class Command(BaseCommand):
         company = Company.objects.first()
         if company:
             # Update existing company
-            company.name = "J&N Construction & Manufacturing"
+            company.name = "J&N Pvt Ltd"
             company.trading_name = "J&N WMS"
             company.email = "info@jandn.mw"
             company.phone = "+265 999 000 000"
-            company.physical_address = "Blantyre, Malawi"
-            company.city = "Blantyre"
+            company.physical_address = "Lilongwe, Malawi"
+            company.city = "Lilongwe"
             company.country = "Malawi"
             company.currency = "MWK"
             company.currency_symbol = "MK"
@@ -61,12 +61,12 @@ class Command(BaseCommand):
         else:
             # Create new company
             Company.objects.create(
-                name="J&N PVT LTD",
+                name="J&N Pvt Ltd",
                 trading_name="J&N WMS",
                 email="info@jandn.mw",
                 phone="+265 999 000 000",
-                physical_address="Blantyre, Malawi",
-                city="Blantyre",
+                physical_address="Lilongwe, Malawi",
+                city="Lilongwe",
                 country="Malawi",
                 currency="MWK",
                 currency_symbol="MK",
@@ -169,7 +169,7 @@ class Command(BaseCommand):
     def seed_hr_data(self):
         self.stdout.write("  Seeding HR data...")
 
-        # Departments
+        # Departments – use `name` as the unique lookup because it's unique
         depts = [
             ('ADM', 'Administration'),
             ('FIN', 'Finance'),
@@ -184,13 +184,19 @@ class Command(BaseCommand):
         ]
         for code, name in depts:
             dept, created = Department.objects.get_or_create(
-                code=code,
-                defaults={'name': name, 'is_active': True}
+                name=name,
+                defaults={'code': code, 'is_active': True}
             )
             if created:
-                self.stdout.write(f"    Department {code} created.")
+                self.stdout.write(f"    Department {name} created.")
+            else:
+                # If it exists, ensure code is correct
+                if dept.code != code:
+                    dept.code = code
+                    dept.save()
+                    self.stdout.write(f"    Department {name} updated with code {code}.")
 
-        # Leave Types
+        # Leave Types – use `code` as the unique lookup
         leave_types = [
             ('AL', 'Annual Leave', 20),
             ('SL', 'Sick Leave', 10),
@@ -207,7 +213,7 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"    Leave type {code} created.")
 
-        # Salary Structure
+        # Salary Structure – use `name` as unique
         structure, created = SalaryStructure.objects.get_or_create(
             name='Standard',
             defaults={'description': 'Standard employee salary structure', 'is_active': True}
@@ -215,7 +221,7 @@ class Command(BaseCommand):
         if created:
             self.stdout.write("    Salary structure 'Standard' created.")
 
-        # Salary Components
+        # Salary Components – use `code` as unique (code is unique)
         components = [
             ('BASIC', 'Basic Salary', True, False, False, 'fixed', 0, 0),
             ('HOUSING', 'Housing Allowance', False, True, False, 'fixed', 200000, 0),
@@ -226,9 +232,9 @@ class Command(BaseCommand):
         for code, name, basic, taxable, ded, calc_type, amount, pct_of in components:
             comp, created = SalaryComponent.objects.get_or_create(
                 code=code,
-                structure=structure,
                 defaults={
                     'name': name,
+                    'structure': structure,
                     'is_basic': basic,
                     'is_taxable': taxable,
                     'is_deduction': ded,
@@ -243,7 +249,7 @@ class Command(BaseCommand):
     def seed_inventory_basics(self):
         self.stdout.write("  Seeding inventory basics...")
 
-        # Units
+        # Units – use `name` as unique
         units = [
             ('Kilogram', 'kg'),
             ('Litre', 'L'),
@@ -260,7 +266,7 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"    Unit {name} created.")
 
-        # Categories
+        # Categories – use `name` as unique
         cats = [
             ('Cement & Concrete', 'Cement and concrete products'),
             ('Steel & Iron', 'Steel bars, sheets, etc.'),
@@ -278,7 +284,7 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write(f"    Category {name} created.")
 
-        # Warehouses
+        # Warehouses – use `name` as unique
         warehouses = [
             ('Main Warehouse', 'Blantyre Head Office', True),
             ('Lilongwe Depot', 'Lilongwe Branch', True),
@@ -295,7 +301,7 @@ class Command(BaseCommand):
     def seed_roles_and_groups(self):
         self.stdout.write("  Seeding roles and groups...")
 
-        # Ensure roles exist
+        # Ensure roles exist – use `name` as unique
         role_names = [
             'System Administrator',
             'Sales Manager',
