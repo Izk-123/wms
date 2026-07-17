@@ -41,22 +41,37 @@ class Command(BaseCommand):
 
     def seed_company_settings(self):
         self.stdout.write("  Seeding company settings...")
-        # Create company if not exists
-        company, created = Company.objects.get_or_create(
-            name="J&N Construction & Manufacturing",
-            defaults={
-                'trading_name': 'J&N WMS',
-                'email': 'info@jandn.mw',
-                'phone': '+265 999 000 000',
-                'physical_address': 'Blantyre, Malawi',
-                'city': 'Blantyre',
-                'country': 'Malawi',
-                'currency': 'MWK',
-                'currency_symbol': 'MK',
-                'timezone': 'Africa/Blantyre',
-            }
-        )
-        if created:
+
+        # Check if a company already exists
+        company = Company.objects.first()
+        if company:
+            # Update existing company
+            company.name = "J&N Construction & Manufacturing"
+            company.trading_name = "J&N WMS"
+            company.email = "info@jandn.mw"
+            company.phone = "+265 999 000 000"
+            company.physical_address = "Blantyre, Malawi"
+            company.city = "Blantyre"
+            company.country = "Malawi"
+            company.currency = "MWK"
+            company.currency_symbol = "MK"
+            company.timezone = "Africa/Blantyre"
+            company.save()
+            self.stdout.write("    Company profile updated.")
+        else:
+            # Create new company
+            Company.objects.create(
+                name="J&N PVT LTD",
+                trading_name="J&N WMS",
+                email="info@jandn.mw",
+                phone="+265 999 000 000",
+                physical_address="Blantyre, Malawi",
+                city="Blantyre",
+                country="Malawi",
+                currency="MWK",
+                currency_symbol="MK",
+                timezone="Africa/Blantyre",
+            )
             self.stdout.write("    Company profile created.")
 
         # System Settings (prefixes, tax, etc.)
@@ -123,7 +138,7 @@ class Command(BaseCommand):
             code="HQ",
             defaults={
                 'name': "Head Office - Blantyre",
-                'company': company,
+                'company': company if company else None,
                 'address': "Blantyre, Malawi",
                 'is_active': True
             }
