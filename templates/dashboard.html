@@ -213,7 +213,7 @@
 </div>
 
 {# ─── Two‑Column Layout ─────────────────────────────────── #}
-<div class="row g-4 mb-4"> 
+<div class="row g-4 mb-4">
 
     {# ─── Left: Charts ───────────────────────────────────── #}
     <div class="col-12 col-xl-7" data-aos="fade-up">
@@ -347,6 +347,49 @@
         </div>
     </div>
 </div>
+
+{# ─── Finance Snapshot (visible to finance users) ───── #}
+{% if perms.finance.view_expense or perms.finance.view_account %}
+<div class="row g-3 mt-3" data-aos="fade-up">
+    <div class="col-12">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Finance Snapshot – {{ today|date:"F Y" }}</h6>
+                <a href="{% url 'reports:income-statement' %}" class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">
+                    View Full Income Statement
+                </a>
+            </div>
+            <div class="wms-card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-6 col-md-3">
+                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Revenue</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#22c55e;">{{ currency_symbol }} {{ total_revenue|floatformat:0 }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Expenses</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ currency_symbol }} {{ total_expenses|floatformat:0 }}</div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Net Profit</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:{% if net_profit >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
+                            {{ currency_symbol }} {{ net_profit|floatformat:0 }}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Cash in Hand</div>
+                        <div style="font-size:1.2rem;font-weight:800;color:#3b82f6;">{{ currency_symbol }} {{ cash_balance|floatformat:0 }}</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-3 pt-3 border-top border-wms justify-content-center">
+                    <a href="{% url 'reports:income-statement' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Income Statement</a>
+                    <a href="{% url 'reports:cash-flow' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Cash Flow</a>
+                    <a href="{% url 'reports:balance-sheet' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Balance Sheet</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 {# ─── Recent Movements Table ────────────────────────────── #}
 <div class="wms-card mt-4" data-aos="fade-up">

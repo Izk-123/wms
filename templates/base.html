@@ -362,7 +362,7 @@
             box-shadow: var(--shadow-sm);
             transition: var(--transition);
             overflow: hidden;
-            position: relative;      /* ✅ FIX: Prevents leaks & overlaps */
+            position: relative;
         }
         .wms-card:hover { box-shadow: var(--shadow-md); }
 
@@ -372,8 +372,8 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            position: relative;      /* ✅ FIX: Keeps header isolated */
-            z-index: 2;              /* ✅ Ensures header sits above inner content */
+            position: relative;
+            z-index: 2;
         }
 
         .wms-card-header h6 {
@@ -1209,6 +1209,34 @@
                title="Project Consumption">
                 <span class="material-icons nav-icon">analytics</span>
                 <span class="nav-label">Project Costs</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Finance Reports (visible to finance users) ─── #}
+        {% if perms.finance.view_expense or perms.finance.view_account %}
+        <div class="nav-item">
+            <a href="{% url 'reports:income-statement' %}"
+               class="{% if 'reports/finance/income-statement' in request.path %}active{% endif %}"
+               title="Income Statement">
+                <span class="material-icons nav-icon">assessment</span>
+                <span class="nav-label">Income Statement</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'reports:cash-flow' %}"
+               class="{% if 'reports/finance/cash-flow' in request.path %}active{% endif %}"
+               title="Cash Flow">
+                <span class="material-icons nav-icon">payments</span>
+                <span class="nav-label">Cash Flow</span>
+            </a>
+        </div>
+        <div class="nav-item">
+            <a href="{% url 'reports:balance-sheet' %}"
+               class="{% if 'reports/finance/balance-sheet' in request.path %}active{% endif %}"
+               title="Balance Sheet">
+                <span class="material-icons nav-icon">account_balance</span>
+                <span class="nav-label">Balance Sheet</span>
             </a>
         </div>
         {% endif %}

@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Cash Flow{% endblock %}
+{% block page_title %}Cash Flow{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <h5 class="fw-semibold mb-0 text-primary-wms">Cash Flow</h5>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:export-cash-flow-excel' %}?date_from={{ date_from }}&date_to={{ date_to }}" 
+           class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.4rem 1rem;">
+            <span class="material-icons" style="font-size:16px;">table_view</span> Excel
+        </a>
+        <a href="{% url 'reports:export-cash-flow-pdf' %}?date_from={{ date_from }}&date_to={{ date_to }}" 
+           class="btn-wms-primary" style="background:#ef4444;font-size:.78rem;padding:.4rem 1rem;">
+            <span class="material-icons" style="font-size:16px;">picture_as_pdf</span> PDF
+        </a>
+    </div>
+</div>
+
+{# ── Filter ───────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms" style="font-size:.72rem;color:var(--text-muted);">From</label>
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control-wms" style="padding:.4rem .7rem;">
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms" style="font-size:.72rem;color:var(--text-muted);">To</label>
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control-wms" style="padding:.4rem .7rem;">
+        </div>
+        <div class="col-12 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">Apply</button>
+            <a href="{% url 'reports:cash-flow' %}" class="btn-clear flex-fill">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Cash Flow – {{ date_from }} to {{ date_to }}</h6>
+            </div>
+            <div class="wms-card-body">
+                <table class="wms-table">
+                    <tbody>
+                        <tr>
+                            <td class="fw-semibold">Cash In (Payments)</td>
+                            <td class="text-end fw-bold text-success">{{ currency_symbol }} {{ cash_in|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-semibold">Cash Out (Expenses)</td>
+                            <td class="text-end fw-bold text-danger">({{ currency_symbol }} {{ cash_out|floatformat:2 }})</td>
+                        </tr>
+                        <tr><td colspan="2"><hr></td></tr>
+                        <tr>
+                            <td class="fw-bold">Net Cash Flow</td>
+                            <td class="text-end fw-bold {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ currency_symbol }} {{ net_cash_flow|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-4">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Summary</h6></div>
+            <div class="wms-card-body">
+                <div class="d-flex justify-content-between py-1"><span>Cash In</span><span class="fw-bold text-success">{{ currency_symbol }} {{ cash_in|floatformat:2 }}</span></div>
+                <div class="d-flex justify-content-between py-1"><span>Cash Out</span><span class="fw-bold text-danger">{{ currency_symbol }} {{ cash_out|floatformat:2 }}</span></div>
+                <div class="d-flex justify-content-between py-1 border-top border-wms mt-2 pt-2"><span class="fw-bold">Net</span><span class="fw-bold {% if net_cash_flow >= 0 %}text-success{% else %}text-danger{% endif %}">{{ currency_symbol }} {{ net_cash_flow|floatformat:2 }}</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
