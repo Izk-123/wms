@@ -6,6 +6,7 @@ app_name = 'finance'
 urlpatterns = [
     path('accounts/', views.AccountListView.as_view(), name='account-list'),
     path('accounts/add/', views.AccountCreateView.as_view(), name='account-create'),
+    path('accounts/<int:pk>/edit/', views.AccountUpdateView.as_view(), name='account-update'),
     path('journal/', views.JournalEntryListView.as_view(), name='journal-list'),
     path('expenses/', views.ExpenseListView.as_view(), name='expense-list'),
     path('expenses/add/', views.ExpenseCreateView.as_view(), name='expense-create'),

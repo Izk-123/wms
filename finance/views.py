@@ -26,6 +26,13 @@ class AccountCreateView(WMSPermissionMixin, CreateView):
     template_name = 'finance/account_form.html'
     success_url = reverse_lazy('finance:account-list')
 
+class AccountUpdateView(WMSPermissionMixin, UpdateView):
+    permission_required = 'finance.change_account'
+    model = Account
+    form_class = AccountForm
+    template_name = 'finance/account_form.html'
+    success_url = reverse_lazy('finance:account-list')
+
 # ─── Journal Entry Views (read‑only) ────────────────────
 class JournalEntryListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_journalentry'
