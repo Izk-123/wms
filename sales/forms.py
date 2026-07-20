@@ -4,6 +4,7 @@ from django.forms import inlineformset_factory
 from company_settings.services import get_payment_methods
 from .models import Customer, SalesOrder, SalesOrderItem, Invoice, Payment
 
+
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
@@ -17,6 +18,7 @@ class CustomerForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
+
 class SalesOrderForm(forms.ModelForm):
     class Meta:
         model = SalesOrder
@@ -27,6 +29,7 @@ class SalesOrderForm(forms.ModelForm):
             'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+
 
 class SalesOrderItemForm(forms.ModelForm):
     class Meta:
@@ -39,16 +42,23 @@ class SalesOrderItemForm(forms.ModelForm):
             'notes': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
+
 SalesOrderItemFormSet = inlineformset_factory(
     SalesOrder, SalesOrderItem, form=SalesOrderItemForm, extra=3, min_num=1, validate_min=True, can_delete=True
 )
+
 
 class PaymentForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         methods = get_payment_methods()
-        self.fields["payment_method"].choices = [(m["code"], m["name"]) for m in methods]
-        
+        if methods:
+            choices = [(m["code"], m["name"]) for m in methods]
+        else:
+            # Fallback to the model's choices (which now match uppercase codes)
+            choices = Payment.PAYMENT_METHOD_CHOICES
+        self.fields["payment_method"].choices = choices
+
     class Meta:
         model = Payment
         fields = ['amount', 'payment_method', 'reference', 'notes']
@@ -58,6 +68,7 @@ class PaymentForm(forms.ModelForm):
             'reference': forms.TextInput(attrs={'class': 'form-control'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
         }
+
 
 class InvoiceForm(forms.ModelForm):
     class Meta:

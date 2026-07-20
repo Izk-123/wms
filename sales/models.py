@@ -11,7 +11,6 @@ from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from accounts.models import User
 from inventory.models import Item, Warehouse
-from company_settings.numbering import generate_next_number
 
 
 class Customer(models.Model):
@@ -43,7 +42,7 @@ class SalesOrder(models.Model):
         ('cancelled', 'Cancelled'),
     )
 
-    reference = models.CharField(max_length=50, unique=True, blank=True)
+    reference = models.CharField(max_length=50, unique=True, blank=True, null=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='sales_orders')
     order_date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='draft')
@@ -60,14 +59,13 @@ class SalesOrder(models.Model):
 
     class Meta:
         permissions = [
-            # Custom permissions only – built‑in add/change/delete/view are automatic.
             ("approve_discount", "Can approve discounts on sales orders"),
         ]
 
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = generate_next_number("SO_PREFIX", SalesOrder, padding=6)
+            self.reference = f"SO-{self.pk:06d}"
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
@@ -117,7 +115,7 @@ class Invoice(models.Model):
         ('cancelled', 'Cancelled'),
     )
 
-    reference = models.CharField(max_length=50, unique=True, blank=True)
+    reference = models.CharField(max_length=50, unique=True, blank=True, null=True)
     sales_order = models.ForeignKey(SalesOrder, on_delete=models.PROTECT, related_name='invoices',
                                     null=True, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='invoices')
@@ -133,16 +131,14 @@ class Invoice(models.Model):
 
     class Meta:
         permissions = [
-            # Custom permissions only
-            ("create_invoice", "Can create invoice"),   # separate from add_invoice (automatic)
+            ("create_invoice", "Can create invoice"),
             ("cancel_invoice", "Can cancel invoice"),
-            # view/change/delete are automatic
         ]
 
     def save(self, *args, **kwargs):
         if not self.reference:
             super().save(*args, **kwargs)
-            self.reference = generate_next_number("INVOICE_PREFIX", Invoice, padding=6)
+            self.reference = f"INV-{self.pk:06d}"
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)
@@ -176,13 +172,14 @@ class Payment(models.Model):
     Payment received from customer against an invoice.
     Supports multiple payment methods.
     """
+    # ═══ IMPORTANT: Codes must match PaymentMethod.code (uppercase) ═══
     PAYMENT_METHOD_CHOICES = (
-        ('cash', 'Cash'),
-        ('bank', 'Bank Transfer'),
-        ('airtel_money', 'Airtel Money'),
-        ('mpamba', 'TNM Mpamba'),
-        ('cheque', 'Cheque'),
-        ('credit', 'Credit'),
+        ('CASH', 'Cash'),
+        ('BANK', 'Bank Transfer'),
+        ('AIRTE', 'Airtel Money'),
+        ('MPAMB', 'TNM Mpamba'),
+        ('CHEQUE', 'Cheque'),
+        ('CREDIT', 'Credit'),
     )
 
     invoice = models.ForeignKey(Invoice, on_delete=models.PROTECT, related_name='payments')
@@ -194,11 +191,11 @@ class Payment(models.Model):
     received_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='payments_received')
     notes = models.TextField(blank=True)
 
+    receipt_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
+
     class Meta:
         permissions = [
-            # Custom permissions only
             ("receive_payment", "Can receive payment"),
-            # view/delete are automatic
         ]
 
     def get_absolute_url(self):
@@ -206,8 +203,11 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.invoice.reference} - {self.amount} ({self.payment_method})"
-    
+
     def save(self, *args, **kwargs):
         if not self.receipt_number:
-            self.receipt_number = generate_next_number("RECEIPT_PREFIX", Payment, field="receipt_number", padding=6)
-        super().save(*args, **kwargs)
+            super().save(*args, **kwargs)
+            self.receipt_number = f"REC-{self.pk:06d}"
+            super().save(update_fields=['receipt_number'])
+        else:
+            super().save(*args, **kwargs)
