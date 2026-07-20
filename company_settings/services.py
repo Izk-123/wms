@@ -1,11 +1,12 @@
-from datetime import timezone
+from django.utils import timezone
 from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
-from .models import ApprovalRule, ApprovalRequest
-from accounts.models import User, Role
-from .models import Company, PaymentMethod, SystemSetting
 from django.core.cache import cache
+
+from .models import ApprovalRule, ApprovalRequest, Company, PaymentMethod, SystemSetting
+from accounts.models import User, Role
+
 
 def get_company():
     """Return the single Company instance (cached)."""
@@ -18,6 +19,7 @@ def get_company():
         except Company.DoesNotExist:
             company = None
     return company
+
 
 def get_setting(key, default=None):
     """Get a system setting by key, return typed value."""
@@ -34,6 +36,7 @@ def get_setting(key, default=None):
 
     cache.set(cache_key, value, 60 * 60)  # 1 hour
     return value
+
 
 def get_payment_methods():
     """Return list of active payment methods."""
@@ -60,6 +63,7 @@ def get_approval_required(action, amount):
         return rule.required_role
     return None
 
+
 def user_can_approve(user, action, amount):
     """
     Check if the user's role is sufficient to approve the action/amount.
@@ -72,6 +76,7 @@ def user_can_approve(user, action, amount):
         return False
     # Role level: higher = more authority
     return user.role.level >= required_role.level
+
 
 def create_approval_request(user, action, amount, reference="", notes="", content_object=None):
     """
@@ -103,21 +108,30 @@ def create_approval_request(user, action, amount, reference="", notes="", conten
 
     return request
 
-def notify_approvers(approval_request, required_role):
+
+def notify_approvers(approval_request, required_role, custom_message=None):
     """
     Send notification to all users with the required role.
+    If custom_message is provided, use it instead of the default.
     """
     from notifications.sender import notify_users
+
     approvers = User.objects.filter(role=required_role, is_active=True)
     if approvers:
+        if custom_message:
+            message = custom_message
+        else:
+            message = f"{approval_request.reference} – Amount: MWK {approval_request.amount} requires your approval."
+
         notify_users(
             users=approvers,
             title=f"Approval Needed: {approval_request.action}",
-            message=f"{approval_request.reference} – Amount: MWK {approval_request.amount} requires your approval.",
+            message=message,
             notification_type='approval_required',
             level='warning',
             url=f"/settings/approvals/{approval_request.pk}/",
         )
+
 
 def approve_request(approval_request, approver, note=""):
     """
@@ -134,6 +148,7 @@ def approve_request(approval_request, approver, note=""):
         approval_request.notes += f"\nApproved: {note}"
     approval_request.save()
     return approval_request
+
 
 def reject_request(approval_request, approver, reason):
     """

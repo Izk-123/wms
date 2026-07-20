@@ -53,9 +53,7 @@ class JournalEntry(models.Model):
 
     class Meta:
         permissions = [
-            # Custom permissions
             ("approve_journalentry", "Can approve journal entries"),
-            # add/view are automatic
         ]
 
     @property
@@ -70,8 +68,6 @@ class JournalEntry(models.Model):
         return f"{self.entry_date} - {self.description}"
     
     def save(self, *args, **kwargs):
-        # Journal entries may be manual or auto-generated
-        # Only generate if reference is blank AND we want auto-numbering
         if not self.reference and get_setting("AUTO_JOURNAL_REFERENCE", True):
             self.reference = generate_next_number("JOURNAL_PREFIX", JournalEntry, padding=6)
         super().save(*args, **kwargs)
@@ -120,7 +116,8 @@ class Expense(models.Model):
         ('rejected', 'Rejected'),
     )
 
-    reference = models.CharField(max_length=50, unique=True, blank=True)
+    # ─── Fixed: allow null so first save doesn't violate UNIQUE ───
+    reference = models.CharField(max_length=50, unique=True, blank=True, null=True)
     category = models.CharField(max_length=30, choices=EXPENSE_CATEGORY_CHOICES, default='other')
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     expense_date = models.DateField(auto_now_add=True)
@@ -143,16 +140,17 @@ class Expense(models.Model):
 
     class Meta:
         permissions = [
-            # Custom permissions
             ("approve_expense", "Can approve expense"),
             ("pay_expense", "Can pay expense"),
-            # add/view are automatic
         ]
 
     def save(self, *args, **kwargs):
         if not self.reference:
+            # First save with no reference (will be NULL)
             super().save(*args, **kwargs)
-            self.reference = generate_next_number("EXPENSE_PREFIX", Expense, padding=6)
+            # Now generate reference from the primary key
+            self.reference = f"EXP-{self.pk:06d}"
+            # Update only the reference field
             super().save(update_fields=['reference'])
         else:
             super().save(*args, **kwargs)

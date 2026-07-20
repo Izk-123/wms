@@ -309,40 +309,39 @@ class Command(BaseCommand):
     def seed_roles_and_groups(self):
         self.stdout.write("  Seeding roles and groups...")
 
-        # Ensure roles exist – update_or_create on name
-        role_names = [
-            'System Administrator',
-            'Sales Manager',
-            'Sales Representative',
-            'Cashier',
-            'Finance Manager',
-            'Accountant',
-            'HR Manager',
-            'HR Officer',
-            'Department Manager',
-            'Employee',
+        # Define roles with levels – use update_or_create with defaults
+        roles = [
+            ("System Administrator", 99, "Full system access, user and role management."),
+            ("Sales Manager", 50, "Manage sales team, approve discounts, review sales performance."),
+            ("Sales Representative", 20, "Create quotations, sales orders, manage customers."),
+            ("Cashier", 30, "Receive customer payments, issue receipts."),
+            ("Finance Manager", 60, "Approve payments, expenses, review financial reports."),
+            ("Accountant", 40, "Record accounting entries, bank reconciliation, prepare financial reports."),
+            ("HR Manager", 55, "Full HR access: employees, leave, payroll."),
+            ("HR Officer", 35, "Manage employee records, leave, attendance."),
+            ("Department Manager", 45, "Approve leave for department staff."),
+            ("Employee", 10, "Self-service: view profile, apply leave, view payslips."),
+            ("Warehouse Manager", 50, "Approve stock movements, monitor inventory levels."),
+            ("Storekeeper", 25, "Receive goods, issue materials, perform stock counts."),
+            ("Procurement Officer", 30, "Manage suppliers, purchase orders, and deliveries."),
+            ("Project Supervisor", 30, "Request and track materials for construction projects."),
+            ("Asset Officer", 30, "Manage tools, equipment assignments, and maintenance."),
+            ("Management", 40, "Read-only access to dashboards and reports."),
         ]
-        for name in role_names:
-            role, created = Role.objects.update_or_create(name=name)
+
+        for name, level, description in roles:
+            role, created = Role.objects.update_or_create(
+                name=name,
+                defaults={'description': description, 'level': level}
+            )
             if created:
-                self.stdout.write(f"    Role {name} created.")
+                self.stdout.write(f"    Role {name} created (level {level}).")
             else:
-                self.stdout.write(f"    Role {name} already exists.")
+                self.stdout.write(f"    Role {name} updated (level {level}).")
 
         # Create Django Groups with the same names
-        groups = [
-            'System Administrator',
-            'Sales Manager',
-            'Sales Representative',
-            'Cashier',
-            'Finance Manager',
-            'Accountant',
-            'HR Manager',
-            'HR Officer',
-            'Department Manager',
-            'Employee',
-        ]
-        for name in groups:
+        group_names = [r[0] for r in roles]
+        for name in group_names:
             group, created = Group.objects.update_or_create(name=name)
             if created:
                 self.stdout.write(f"    Group {name} created.")

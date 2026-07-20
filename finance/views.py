@@ -5,19 +5,25 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.core.exceptions import ValidationError
 from company_settings.models import ApprovalRequest
-from company_settings.services import approve_request, create_approval_request, get_approval_required, reject_request, user_can_approve
+from company_settings.services import (
+    approve_request, create_approval_request, get_approval_required,
+    reject_request, user_can_approve
+)
 from core.mixins import WMSPermissionMixin
 from accounts.views import log_activity
 from .models import Account, JournalEntry, Expense
 from .forms import AccountForm, ExpenseForm
 from .services import create_expense_journal_entry
 
+
 # ─── Account Views ──────────────────────────────────────
+
 class AccountListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_account'
     model = Account
     template_name = 'finance/account_list.html'
     context_object_name = 'accounts'
+
 
 class AccountCreateView(WMSPermissionMixin, CreateView):
     permission_required = 'finance.add_account'
@@ -26,6 +32,7 @@ class AccountCreateView(WMSPermissionMixin, CreateView):
     template_name = 'finance/account_form.html'
     success_url = reverse_lazy('finance:account-list')
 
+
 class AccountUpdateView(WMSPermissionMixin, UpdateView):
     permission_required = 'finance.change_account'
     model = Account
@@ -33,7 +40,9 @@ class AccountUpdateView(WMSPermissionMixin, UpdateView):
     template_name = 'finance/account_form.html'
     success_url = reverse_lazy('finance:account-list')
 
+
 # ─── Journal Entry Views (read‑only) ────────────────────
+
 class JournalEntryListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_journalentry'
     model = JournalEntry
@@ -42,7 +51,9 @@ class JournalEntryListView(WMSPermissionMixin, ListView):
     paginate_by = 30
     ordering = ['-entry_date']
 
+
 # ─── Expense Views ──────────────────────────────────────
+
 class ExpenseListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_expense'
     model = Expense
@@ -62,6 +73,7 @@ class ExpenseListView(WMSPermissionMixin, ListView):
         ctx['statuses'] = Expense.STATUS_CHOICES
         ctx['selected_status'] = self.request.GET.get('status', '')
         return ctx
+
 
 class ExpenseCreateView(WMSPermissionMixin, CreateView):
     permission_required = 'finance.add_expense'
@@ -89,15 +101,22 @@ class ExpenseCreateView(WMSPermissionMixin, CreateView):
             return redirect('finance:expense-list')
         expense.status = 'approved'
         expense.save()
-        log_activity(...)
+        log_activity(
+            self.request.user,
+            f"Created expense {expense.reference}",
+            "Finance",
+            request=self.request
+        )
         messages.success(self.request, "Expense recorded.")
         return redirect('finance:expense-detail', pk=expense.pk)
+
 
 class ExpenseDetailView(WMSPermissionMixin, DetailView):
     permission_required = 'finance.view_expense'
     model = Expense
     template_name = 'finance/expense_detail.html'
     context_object_name = 'expense'
+
 
 class ExpenseApproveView(WMSPermissionMixin, View):
     permission_required = 'finance.approve_expense'
@@ -125,35 +144,52 @@ class ExpenseApproveView(WMSPermissionMixin, View):
                 expense.status = 'approved'
                 expense.approved_by = request.user
                 expense.save()
-                # Create journal entry for expense
                 create_expense_journal_entry(expense)
+                log_activity(
+                    request.user,
+                    f"Approved expense {expense.reference}",
+                    "Finance",
+                    request=request
+                )
                 messages.success(request, "Expense approved.")
             elif action == 'reject':
                 reason = request.POST.get('reason', '')
                 reject_request(approval_request, request.user, reason)
                 expense.status = 'rejected'
                 expense.save()
+                log_activity(
+                    request.user,
+                    f"Rejected expense {expense.reference}",
+                    "Finance",
+                    request=request
+                )
                 messages.warning(request, "Expense rejected.")
         except ValidationError as e:
             messages.error(request, str(e))
 
         return redirect('finance:expense-detail', pk=pk)
 
+
 class ExpensePayView(WMSPermissionMixin, View):
-    permission_required = 'finance.pay_expense'  # add this permission
+    permission_required = 'finance.pay_expense'
 
     def post(self, request, pk):
         expense = get_object_or_404(Expense, pk=pk)
         if expense.status != 'approved':
             messages.error(request, "Only approved expenses can be paid.")
             return redirect('finance:expense-detail', pk=pk)
-        # Record payment (update cash/bank)
+
         expense.status = 'paid'
         expense.paid_by = request.user
-        expense.payment_method = request.POST.get('payment_method', 'cash')
+        # ✅ FIX: default to uppercase 'CASH'
+        expense.payment_method = request.POST.get('payment_method', 'CASH')
         expense.save()
-        # Create journal entry for payment (debit expense already done, credit cash)
-        # We'll handle via service
-        log_activity(request.user, f"Paid expense {expense.reference}", "Finance", request=request)
+
+        log_activity(
+            request.user,
+            f"Paid expense {expense.reference}",
+            "Finance",
+            request=request
+        )
         messages.success(request, "Expense marked as paid.")
         return redirect('finance:expense-detail', pk=pk)
