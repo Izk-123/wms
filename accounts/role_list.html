@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Roles{% endblock %}
+{% block page_title %}Roles Management{% endblock %}
+
+{% block content %}
+
+{% url 'accounts:role-create' as add_role_url %}
+{% include 'inventory/_card_header.html' with page_title="Roles" page_subtitle="Manage user roles and permissions" add_url=add_role_url add_label="Add Role" %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Users</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for role in roles %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ role.name }}</td>
+                    <td>{{ role.description|default:"—" }}</td>
+                    <td>{{ role.user_count }}</td>
+                    <td>
+                        <a href="{% url 'accounts:role-update' role.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">admin_panel_settings</span>
+                            <h6>No roles found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

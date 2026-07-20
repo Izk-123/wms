@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Payroll Runs{% endblock %}
+{% block page_title %}Payroll Management{% endblock %}
+
+{% block content %}
+
+{% url 'hr:payroll-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Payroll Runs" page_subtitle="Process employee payroll" add_url=add_url add_label="New Payroll" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'hr:payroll-list' %}"
+                    hx-trigger="change"
+                    hx-target="#payroll-table">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'hr:payroll-list' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="payroll-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Period</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                    <th>Run Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payroll in payrolls %}
+                <tr>
+                    <td class="fw-semibold">
+                        <a href="{% url 'hr:payroll-detail' payroll.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ payroll.reference }}
+                        </a>
+                    </td>
+                    <td>{{ payroll.period_start|date:"d M Y" }} – {{ payroll.period_end|date:"d M Y" }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if payroll.status == 'draft' %}badge-neutral
+                            {% elif payroll.status == 'processed' %}badge-info
+                            {% elif payroll.status == 'posted' %}badge-success
+                            {% elif payroll.status == 'cancelled' %}badge-danger
+                            {% endif %}">
+                            {{ payroll.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ payroll.created_by.get_full_name }}</td>
+                    <td>{{ payroll.run_date|date:"d M Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'hr:payroll-detail' payroll.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                            <span class="material-icons" style="font-size:16px;">visibility</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">payments</span>
+                            <h6>No payroll runs found</h6>
+                            <p><a href="{% url 'hr:payroll-create' %}" class="text-primary-wms">Create your first payroll</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

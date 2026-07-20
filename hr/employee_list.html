@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Employees{% endblock %}
+{% block page_title %}Employee Management{% endblock %}
+
+{% block content %}
+
+{% url 'hr:employee-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Employees" page_subtitle="Manage your workforce" add_url=add_url add_label="Add Employee" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by name, ID or email..."
+                       hx-get="{% url 'hr:employee-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#employee-table"
+                       hx-include="[name='department'],[name='status']">
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="department" class="form-select-wms"
+                    hx-get="{% url 'hr:employee-list' %}"
+                    hx-trigger="change"
+                    hx-target="#employee-table"
+                    hx-include="[name='q'],[name='status']">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.pk }}" {% if selected_department == dept.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'hr:employee-list' %}"
+                    hx-trigger="change"
+                    hx-target="#employee-table"
+                    hx-include="[name='q'],[name='department']">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span> Filter
+            </button>
+            <a href="{% url 'hr:employee-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span> Clear
+            </a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="employee-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Employee ID</th>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td class="fw-semibold">
+                        <a href="{% url 'hr:employee-detail' emp.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ emp.employee_id }}
+                        </a>
+                    </td>
+                    <td>{{ emp.full_name }}</td>
+                    <td>{{ emp.position.name }}</td>
+                    <td>{{ emp.department.name }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if emp.employment_status == 'active' %}badge-success
+                            {% elif emp.employment_status == 'probation' %}badge-warning
+                            {% elif emp.employment_status == 'contract' %}badge-info
+                            {% elif emp.employment_status == 'on_leave' %}badge-warning
+                            {% elif emp.employment_status == 'terminated' or emp.employment_status == 'resigned' %}badge-danger
+                            {% else %}badge-neutral{% endif %}">
+                            {{ emp.get_employment_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ emp.company_email }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'hr:employee-detail' emp.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            <a href="{% url 'hr:employee-update' emp.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">people</span>
+                            <h6>No employees found</h6>
+                            <p><a href="{% url 'hr:employee-create' %}" class="text-primary-wms">Add your first employee</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&department={{ selected_department }}&status={{ selected_status }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}&department={{ selected_department }}&status={{ selected_status }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+{% block title %}{{ employee.full_name }}{% endblock %}
+{% block page_title %}Employee Profile{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'hr:employee-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ employee.full_name }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ employee.employee_id }} &middot; {{ employee.position.name }}
+        </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        <a href="{% url 'hr:employee-update' employee.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span> Edit
+        </a>
+    </div>
+</div>
+
+<div class="row g-3 fade-in">
+
+    {# ─── Left Column: Profile & Details ─────────────── #}
+    <div class="col-12 col-lg-4">
+
+        <!-- Profile Card -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-body text-center p-4">
+                <div style="width:80px;height:80px;background:linear-gradient(135deg, var(--brand-500), var(--brand-700));border-radius:50%;
+                            display:flex;align-items:center;justify-content:center;
+                            font-size:1.8rem;font-weight:700;color:#fff;margin:0 auto 1rem;">
+                    {{ employee.first_name|first|upper }}{{ employee.last_name|first|upper }}
+                </div>
+                <h6 class="fw-semibold mb-0 text-primary-wms">{{ employee.full_name }}</h6>
+                <p class="text-secondary-wms mb-1" style="font-size:.85rem;">{{ employee.position.name }}</p>
+                <p class="text-secondary-wms mb-2" style="font-size:.78rem;">{{ employee.department.name }}</p>
+                <span class="wms-badge
+                    {% if employee.employment_status == 'active' %}badge-success
+                    {% elif employee.employment_status == 'probation' %}badge-warning
+                    {% elif employee.employment_status == 'contract' %}badge-info
+                    {% elif employee.employment_status == 'on_leave' %}badge-warning
+                    {% elif employee.employment_status == 'terminated' or employee.employment_status == 'resigned' %}badge-danger
+                    {% else %}badge-neutral{% endif %}"
+                    style="padding:.4rem 1rem;">
+                    {{ employee.get_employment_status_display }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Details -->
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms mb-3">Details</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Employee ID</td><td>{{ employee.employee_id }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Email</td><td>{{ employee.company_email }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Phone</td><td>{{ employee.phone|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Gender</td><td>{{ employee.get_gender_display|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Date of Birth</td><td>{{ employee.date_of_birth|date:"d M Y"|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">National ID</td><td>{{ employee.national_id|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Supervisor</td><td>{{ employee.supervisor.full_name|default:"—" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Joined</td><td>{{ employee.date_joined|date:"d M Y" }}</td></tr>
+                        {% if employee.date_left %}
+                        <tr><td style="color:var(--text-muted);">Left</td><td>{{ employee.date_left|date:"d M Y" }}</td></tr>
+                        {% endif %}
+                        <tr><td style="color:var(--text-muted);">Employment Type</td><td>{{ employee.get_employment_type_display }}</td></tr>
+                        {% if employee.branch %}
+                        <tr><td style="color:var(--text-muted);">Branch</td><td>{{ employee.branch.name }}</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% if employee.notes %}
+                <p class="text-secondary-wms mt-2 mb-0" style="font-size:.85rem;">{{ employee.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ─── Right Column: Leave, Attendance, Documents ─── #}
+    <div class="col-12 col-lg-8">
+
+        <!-- Leave History -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-header">
+                <h6>Leave History</h6>
+                <a href="{% url 'hr:leave-list' %}?employee={{ employee.pk }}" class="btn-wms-secondary" style="font-size:.72rem;padding:.25rem .65rem;">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Dates</th>
+                            <th>Days</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in leave_requests %}
+                        <tr>
+                            <td>{{ leave.leave_type.name }}</td>
+                            <td>{{ leave.start_date|date:"d M" }} – {{ leave.end_date|date:"d M" }}</td>
+                            <td>{{ leave.days }}</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if leave.status == 'approved' %}badge-success
+                                    {% elif leave.status == 'pending' %}badge-warning
+                                    {% elif leave.status == 'rejected' %}badge-danger
+                                    {% else %}badge-neutral{% endif %}">
+                                    {{ leave.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state" style="padding:1rem;">
+                                    <p style="margin:0;font-size:.82rem;">No leave records.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Attendance -->
+        <div class="wms-card mb-3">
+            <div class="wms-card-header">
+                <h6>Recent Attendance</h6>
+                <a href="{% url 'hr:attendance-list' %}?employee={{ employee.pk }}" class="btn-wms-secondary" style="font-size:.72rem;padding:.25rem .65rem;">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for att in attendance %}
+                        <tr>
+                            <td>{{ att.date|date:"d M Y" }}</td>
+                            <td>{{ att.clock_in|date:"H:i"|default:"—" }}</td>
+                            <td>{{ att.clock_out|date:"H:i"|default:"—" }}</td>
+                            <td>
+                                {% if att.is_late %}
+                                <span class="wms-badge badge-warning">Late</span>
+                                {% elif att.clock_out %}
+                                <span class="wms-badge badge-success">Present</span>
+                                {% elif att.clock_in %}
+                                <span class="wms-badge badge-info">Checked In</span>
+                                {% else %}
+                                <span class="wms-badge badge-neutral">Absent</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state" style="padding:1rem;">
+                                    <p style="margin:0;font-size:.82rem;">No attendance records.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Documents</h6>
+                <a href="#" class="btn-wms-primary" style="font-size:.72rem;padding:.25rem .65rem;">
+                    <span class="material-icons" style="font-size:14px;vertical-align:middle;">upload</span> Upload
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Expiry</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.title }}</td>
+                            <td>{{ doc.get_document_type_display }}</td>
+                            <td>{{ doc.expiry_date|date:"d M Y"|default:"—" }}</td>
+                            <td>
+                                <a href="{{ doc.file.url }}" class="btn-wms-secondary" style="padding:.15rem .4rem;" title="Download">
+                                    <span class="material-icons" style="font-size:14px;">download</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state" style="padding:1rem;">
+                                    <p style="margin:0;font-size:.82rem;">No documents uploaded.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

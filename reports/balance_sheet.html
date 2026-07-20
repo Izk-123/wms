@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Balance Sheet{% endblock %}
+{% block page_title %}Balance Sheet{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <h5 class="fw-semibold mb-0 text-primary-wms">Balance Sheet</h5>
+    <div class="d-flex gap-2">
+        <a href="{% url 'reports:export-balance-sheet-excel' %}" 
+           class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.4rem 1rem;">
+            <span class="material-icons" style="font-size:16px;">table_view</span> Excel
+        </a>
+        <a href="{% url 'reports:export-balance-sheet-pdf' %}" 
+           class="btn-wms-primary" style="background:#ef4444;font-size:.78rem;padding:.4rem 1rem;">
+            <span class="material-icons" style="font-size:16px;">picture_as_pdf</span> PDF
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Assets</h6></div>
+            <div class="wms-card-body">
+                <table class="wms-table">
+                    <tbody>
+                        <tr><td>Cash</td><td class="text-end">{{ currency_symbol }} {{ cash|floatformat:2 }}</td></tr>
+                        <tr><td>Bank</td><td class="text-end">{{ currency_symbol }} {{ bank|floatformat:2 }}</td></tr>
+                        <tr><td class="fw-bold">Total Assets</td><td class="text-end fw-bold">{{ currency_symbol }} {{ total_assets|floatformat:2 }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Liabilities & Equity</h6></div>
+            <div class="wms-card-body">
+                <table class="wms-table">
+                    <tbody>
+                        <tr><td>PAYE Payable</td><td class="text-end">{{ currency_symbol }} {{ paye_liability|floatformat:2 }}</td></tr>
+                        <tr><td>Pension Payable</td><td class="text-end">{{ currency_symbol }} {{ pension_liability|floatformat:2 }}</td></tr>
+                        <tr><td class="fw-bold">Total Liabilities</td><td class="text-end fw-bold">{{ currency_symbol }} {{ total_liabilities|floatformat:2 }}</td></tr>
+                        <tr><td colspan="2"><hr></td></tr>
+                        <tr><td>Equity (Retained Earnings)</td><td class="text-end">{{ currency_symbol }} {{ equity|floatformat:2 }}</td></tr>
+                        <tr><td class="fw-bold">Total Liabilities & Equity</td><td class="text-end fw-bold">{{ currency_symbol }} {{ total_liabilities|floatformat:2|add:equity|floatformat:2 }}</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

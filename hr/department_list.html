@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Departments{% endblock %}
+{% block page_title %}Departments{% endblock %}
+
+{% block content %}
+
+{% url 'hr:department-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Departments" page_subtitle="Organisational structure" add_url=add_url add_label="Add Department" %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Manager</th>
+                    <th>Positions</th>
+                    <th>Employees</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in departments %}
+                <tr>
+                    <td class="fw-semibold">{{ dept.code }}</td>
+                    <td>{{ dept.name }}</td>
+                    <td>{{ dept.manager.full_name|default:"—" }}</td>
+                    <td>{{ dept.positions.count }}</td>
+                    <td>{{ dept.employees.count }}</td>
+                    <td>
+                        {% if dept.is_active %}
+                        <span class="wms-badge badge-success">Active</span>
+                        {% else %}
+                        <span class="wms-badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'hr:department-update' dept.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">apartment</span>
+                            <h6>No departments found</h6>
+                            <p><a href="{% url 'hr:department-create' %}" class="text-primary-wms">Add your first department</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
