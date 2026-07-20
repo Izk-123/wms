@@ -19,6 +19,7 @@ class Role(models.Model):
     """User roles (e.g., System Administrator, Warehouse Manager)."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    level = models.PositiveSmallIntegerField(default=10, help_text="Higher = more authority")
 
     class Meta:
         ordering = ['name']

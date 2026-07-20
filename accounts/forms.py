@@ -153,7 +153,7 @@ class RoleForm(forms.ModelForm):
     """Form for creating/editing roles."""
     class Meta:
         model = Role
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'level']
         widgets = {
             'name': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -162,5 +162,9 @@ class RoleForm(forms.ModelForm):
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3
+            }),
+            'level': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1
             }),
         }
