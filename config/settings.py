@@ -194,8 +194,8 @@ if not DEBUG:
 # Unfold provides a modern, customisable admin interface.
 # The navigation below defines the sidebar menu in the admin.
 UNFOLD = {
-    "SITE_TITLE":     "WMS Admin",
-    "SITE_HEADER":    "J&N Warehouse Management",
+    "SITE_TITLE":     "J&N Pvt Ltd.",
+    "SITE_HEADER":    "ERP System",
     "SITE_SUBHEADER": "Construction & Manufacturing",
     "SITE_URL":       "/",                     # Link to the front‑end dashboard
     "SHOW_HISTORY":   True,                    # Show history button on detail pages
