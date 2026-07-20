@@ -61,7 +61,7 @@
 </div>
 {% endif %}
 
-{# ── Pay Modal ────────────────────────────────────────── #}
+{# ── Pay Modal (FIXED: uppercase values) ────────────── #}
 {% if expense.status == 'approved' %}
 <div class="modal fade" id="payModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -78,10 +78,12 @@
                     <div class="form-group">
                         <label class="form-label-wms">Payment Method</label>
                         <select name="payment_method" class="form-select-wms">
-                            <option value="cash">Cash</option>
-                            <option value="bank">Bank Transfer</option>
-                            <option value="airtel_money">Airtel Money</option>
-                            <option value="mpamba">TNM Mpamba</option>
+                            <option value="CASH">Cash</option>
+                            <option value="BANK">Bank Transfer</option>
+                            <option value="AIRTE">Airtel Money</option>
+                            <option value="MPAMB">TNM Mpamba</option>
+                            <option value="CHEQUE">Cheque</option>
+                            <option value="CREDIT">Credit</option>
                         </select>
                     </div>
                 </div>
