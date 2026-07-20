@@ -3,20 +3,25 @@ from decouple import config, Csv
 from django.templatetags.static import static
 from django.urls import reverse_lazy
 
-# ── Base ───────────────────────────────────────────────
+# ── Base Directories ────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ── Security Settings ──────────────────────────────────
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
-# ── Applications ───────────────────────────────────────
+# ── Installed Applications ─────────────────────────────
+# Third‑party packages are listed first, followed by our custom apps.
 INSTALLED_APPS = [
+    # Unfold – modern admin interface (must come before django.contrib.admin)
     'unfold',
     'unfold.contrib.filters',
     'unfold.contrib.forms',
     
+    # Daphne – ASGI server for WebSockets
     'daphne',
+    # Django core
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -24,14 +29,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Third‑party
     'crispy_forms',
     'crispy_bootstrap5',
     'django_filters',
     'django_htmx',
-    'axes',
-    'channels',
+    'axes',                     # Account lockout after failed logins
+    'channels',                 # WebSocket support for real‑time notifications
 
-    # Our apps
+    # Our custom applications (alphabetical order)
     'notifications',
     'accounts',
     'inventory',
@@ -45,27 +51,27 @@ INSTALLED_APPS = [
     'hr',
 ]
 
-# ── Middleware ─────────────────────────────────────────
+# ── Middleware ──────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
-    'axes.middleware.AxesMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',   # Static file serving in production
+    'axes.middleware.AxesMiddleware',               # Account lockout – must be after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_htmx.middleware.HtmxMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',        # HTMX support for partial page updates
 ]
 
 ROOT_URLCONF = 'config.urls'
 
-# ── Templates ──────────────────────────────────────────
+# ── Templates ───────────────────────────────────────────
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates'],           # Global templates directory
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -73,17 +79,17 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'accounts.context_processors.tutorial_context',
-                "company_settings.context_processors.company_settings",
+                'accounts.context_processors.tutorial_context',  # Tutorial modal/tour state
+                'company_settings.context_processors.company_settings',  # Injects company details into every template
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION = 'config.asgi.application'
+ASGI_APPLICATION = 'config.asgi.application'        # Used for WebSockets (Channels)
 
-# ── Database ───────────────────────────────────────────
+# ── Database ────────────────────────────────────────────
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -95,9 +101,8 @@ DATABASES = {
     }
 }
 
-# ── Channels / Redis ───────────────────────────────────
+# ── Channels / Redis (for real‑time notifications) ────
 REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
-
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -107,12 +112,12 @@ CHANNEL_LAYERS = {
     },
 }
 
-# ── Auth ───────────────────────────────────────────────
-AUTH_USER_MODEL = 'accounts.User'
+# ── Authentication ──────────────────────────────────────
+AUTH_USER_MODEL = 'accounts.User'   # Custom user model
 
 AUTHENTICATION_BACKENDS = [
-    'axes.backends.AxesBackend',
-    'django.contrib.auth.backends.ModelBackend',
+    'axes.backends.AxesBackend',                    # Account lockout
+    'django.contrib.auth.backends.ModelBackend',    # Default
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -127,29 +132,29 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/accounts/login/'
 
-# ── Axes ───────────────────────────────────────────────
+# ── Axes (Account Lockout) ─────────────────────────────
 AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 0.25
+AXES_COOLOFF_TIME = 0.25          # 15 minutes (0.25 hours)
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCK_OUT_AT_FAILURE = True
 AXES_ENABLED = True
 AXES_LOCKOUT_TEMPLATE = 'accounts/locked_out.html'
 
-# ── Session ────────────────────────────────────────────
-SESSION_COOKIE_AGE = 28800
+# ── Session ─────────────────────────────────────────────
+SESSION_COOKIE_AGE = 28800        # 8 hours
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-# ── Static & Media ─────────────────────────────────────
+# ── Static & Media Files ───────────────────────────────
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [BASE_DIR / 'static']   # Additional static file directories
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ── Email ──────────────────────────────────────────────
+# ── Email ───────────────────────────────────────────────
 EMAIL_BACKEND     = config('EMAIL_BACKEND',
                            default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST        = config('EMAIL_HOST',         default='localhost')
@@ -160,22 +165,22 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL',
                             default='J&N WMS <noreply@jandn.mw>')
 
-# ── Site ───────────────────────────────────────────────
+# ── Site URL (used in emails and links) ─────────────────
 SITE_URL = config('SITE_URL', default='http://127.0.0.1:8000')
 
-# ── Internationalisation ───────────────────────────────
+# ── Internationalisation ────────────────────────────────
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'Africa/Blantyre'
+TIME_ZONE = 'Africa/Blantyre'    # Malawi time
 USE_I18N = True
 USE_TZ = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ── Crispy Forms ───────────────────────────────────────
+# ── Crispy Forms ────────────────────────────────────────
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
 
-# ── Security (production) ──────────────────────────────
+# ── Security (Production) ──────────────────────────────
 if not DEBUG:
     SESSION_COOKIE_SECURE  = True
     CSRF_COOKIE_SECURE     = True
@@ -185,13 +190,15 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-# ── Unfold Admin ───────────────────────────────────────
+# ── Unfold Admin Configuration ──────────────────────────
+# Unfold provides a modern, customisable admin interface.
+# The navigation below defines the sidebar menu in the admin.
 UNFOLD = {
     "SITE_TITLE":     "WMS Admin",
     "SITE_HEADER":    "J&N Warehouse Management",
     "SITE_SUBHEADER": "Construction & Manufacturing",
-    "SITE_URL":       "/",
-    "SHOW_HISTORY":   True,
+    "SITE_URL":       "/",                     # Link to the front‑end dashboard
+    "SHOW_HISTORY":   True,                    # Show history button on detail pages
     "COLORS": {
         "primary": {
             "50":  "240 249 255",
@@ -207,6 +214,7 @@ UNFOLD = {
         "show_search": True,
         "show_all_applications": False,
         "navigation": [
+            # ── Dashboard ──────────────────────────────────
             {
                 "title": "Dashboard",
                 "items": [
@@ -217,6 +225,7 @@ UNFOLD = {
                     },
                 ],
             },
+            # ── Inventory ──────────────────────────────────
             {
                 "title": "Inventory",
                 "collapsible": True,
@@ -228,6 +237,7 @@ UNFOLD = {
                     {"title": "Movements",     "icon": "swap_horiz",      "link": reverse_lazy("admin:inventory_stockmovement_changelist")},
                 ],
             },
+            # ── Procurement ─────────────────────────────────
             {
                 "title": "Procurement",
                 "collapsible": True,
@@ -237,6 +247,7 @@ UNFOLD = {
                     {"title": "Goods Receipts",  "icon": "move_to_inbox",  "link": reverse_lazy("admin:procurement_goodsreceipt_changelist")},
                 ],
             },
+            # ── Operations ──────────────────────────────────
             {
                 "title": "Operations",
                 "collapsible": True,
@@ -245,6 +256,7 @@ UNFOLD = {
                     {"title": "Material Requests", "icon": "request_page",  "link": reverse_lazy("admin:operations_materialrequest_changelist")},
                 ],
             },
+            # ── Assets ─────────────────────────────────────
             {
                 "title": "Assets",
                 "collapsible": True,
@@ -253,12 +265,61 @@ UNFOLD = {
                     {"title": "Maintenance", "icon": "engineering",  "link": reverse_lazy("admin:assets_maintenancerecord_changelist")},
                 ],
             },
+            # ── Sales ──────────────────────────────────────
+            {
+                "title": "Sales",
+                "collapsible": True,
+                "items": [
+                    {"title": "Customers",     "icon": "people",       "link": reverse_lazy("admin:sales_customer_changelist")},
+                    {"title": "Sales Orders",  "icon": "shopping_cart", "link": reverse_lazy("admin:sales_salesorder_changelist")},
+                    {"title": "Invoices",      "icon": "receipt",      "link": reverse_lazy("admin:sales_invoice_changelist")},
+                    {"title": "Payments",      "icon": "payments",     "link": reverse_lazy("admin:sales_payment_changelist")},
+                ],
+            },
+            # ── Finance ─────────────────────────────────────
+            {
+                "title": "Finance",
+                "collapsible": True,
+                "items": [
+                    {"title": "Accounts",        "icon": "account_balance", "link": reverse_lazy("admin:finance_account_changelist")},
+                    {"title": "Journal Entries", "icon": "book",           "link": reverse_lazy("admin:finance_journalentry_changelist")},
+                    {"title": "Expenses",        "icon": "money_off",      "link": reverse_lazy("admin:finance_expense_changelist")},
+                ],
+            },
+            # ── Human Resources ────────────────────────────
+            {
+                "title": "Human Resources",
+                "collapsible": True,
+                "items": [
+                    {"title": "Employees",          "icon": "people",         "link": reverse_lazy("admin:hr_employee_changelist")},
+                    {"title": "Departments",        "icon": "apartment",      "link": reverse_lazy("admin:hr_department_changelist")},
+                    {"title": "Leave Requests",     "icon": "event",          "link": reverse_lazy("admin:hr_leaverequest_changelist")},
+                    {"title": "Attendance",         "icon": "access_time",    "link": reverse_lazy("admin:hr_attendance_changelist")},
+                    {"title": "Payroll Runs",       "icon": "payments",       "link": reverse_lazy("admin:hr_payrollrun_changelist")},
+                    {"title": "Payslips",           "icon": "picture_as_pdf", "link": reverse_lazy("admin:hr_payslip_changelist")},
+                ],
+            },
+            # ── Company Settings ───────────────────────────
+            {
+                "title": "Company Settings",
+                "collapsible": True,
+                "items": [
+                    {"title": "Company Profile",   "icon": "business",       "link": reverse_lazy("admin:company_settings_company_changelist")},
+                    {"title": "Branches",          "icon": "apartment",      "link": reverse_lazy("admin:company_settings_branch_changelist")},
+                    {"title": "Payment Methods",   "icon": "payment",        "link": reverse_lazy("admin:company_settings_paymentmethod_changelist")},
+                    {"title": "System Settings",   "icon": "settings",       "link": reverse_lazy("admin:company_settings_systemsetting_changelist")},
+                    {"title": "Approval Rules",    "icon": "rule",           "link": reverse_lazy("admin:company_settings_approvalrule_changelist")},
+                    {"title": "Approval Requests", "icon": "pending_actions","link": reverse_lazy("admin:company_settings_approvalrequest_changelist")},
+                ],
+            },
+            # ── Accounts & Users ──────────────────────────
             {
                 "title": "Accounts",
                 "collapsible": True,
                 "items": [
-                    {"title": "Users",         "icon": "people",              "link": reverse_lazy("admin:accounts_user_changelist")},
-                    {"title": "Notifications", "icon": "notifications",       "link": reverse_lazy("admin:notifications_inappnotification_changelist")},
+                    {"title": "Users",         "icon": "people",           "link": reverse_lazy("admin:accounts_user_changelist")},
+                    {"title": "Roles",         "icon": "admin_panel_settings", "link": reverse_lazy("admin:accounts_role_changelist")},
+                    {"title": "Notifications", "icon": "notifications",    "link": reverse_lazy("admin:notifications_inappnotification_changelist")},
                 ],
             },
         ],
