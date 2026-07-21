@@ -88,13 +88,14 @@ class InvoiceAdmin(ModelAdmin):
         ('customer', RelatedDropdownFilter),
     )
     search_fields = ('reference', 'customer__name', 'sales_order__reference')
-    readonly_fields = ('reference', 'paid_amount', 'created_at', 'updated_at')
+    # ✅ FIX: Added invoice_date and payment_date (below) to readonly_fields
+    readonly_fields = ('reference', 'invoice_date', 'paid_amount', 'created_at', 'updated_at')
     fieldsets = (
         (None, {
             'fields': ('reference', 'customer', 'sales_order', 'status')
         }),
         ('Dates', {
-            'fields': ('invoice_date', 'due_date')
+            'fields': ('invoice_date', 'due_date')  # invoice_date now readonly
         }),
         ('Financials', {
             'fields': ('total_amount', 'paid_amount')
@@ -127,6 +128,7 @@ class PaymentAdmin(ModelAdmin):
         ('invoice', RelatedDropdownFilter),
     )
     search_fields = ('invoice__reference', 'reference', 'received_by__username')
+    # ✅ FIX: Added payment_date to readonly_fields
     readonly_fields = ('payment_date',)
     fieldsets = (
         (None, {
@@ -136,7 +138,7 @@ class PaymentAdmin(ModelAdmin):
             'fields': ('notes',)
         }),
         ('Audit', {
-            'fields': ('received_by', 'payment_date'),
+            'fields': ('received_by', 'payment_date'),  # payment_date now readonly
         }),
     )
     ordering = ('-payment_date',)
