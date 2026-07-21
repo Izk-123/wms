@@ -13,10 +13,10 @@
                     warehouse
                 </span>
                 <h4 style="color:white;margin:.75rem 0 .25rem;font-weight:700;">
-                    Welcome to J&N WMS
+                    Welcome to {{ company_name|default:"J&N Pvt Ltd." }}
                 </h4>
                 <p style="color:rgba(255,255,255,.75);font-size:.875rem;margin:0;">
-                    Warehouse Management System
+                    {{ company.trading_name|default:"ERP System" }}
                 </p>
             </div>
 
