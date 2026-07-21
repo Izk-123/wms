@@ -20,7 +20,7 @@
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">payments</span> Record Payment
         </a>
         {% endif %}
-        <a href="#" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+        <a href="{% url 'sales:invoice-print' invoice.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">print</span> Print
         </a>
     </div>

@@ -1017,8 +1017,8 @@
         {% if perms.sales.view_customer %}
         <div class="nav-item">
             <a href="{% url 'sales:customer-list' %}"
-               class="{% if 'sales/customers' in request.path %}active{% endif %}"
-               title="Customers">
+            class="{% if 'sales/customers' in request.path %}active{% endif %}"
+            title="Customers">
                 <span class="material-icons nav-icon">people</span>
                 <span class="nav-label">Customers</span>
             </a>
@@ -1028,10 +1028,22 @@
         {% if perms.sales.view_salesorder %}
         <div class="nav-item">
             <a href="{% url 'sales:order-list' %}"
-               class="{% if 'sales/orders' in request.path %}active{% endif %}"
-               title="Sales Orders">
+            class="{% if 'sales/orders' in request.path and 'ready-to-invoice' not in request.path %}active{% endif %}"
+            title="Sales Orders">
                 <span class="material-icons nav-icon">shopping_cart</span>
                 <span class="nav-label">Sales Orders</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── NEW: Ready to Invoice ────────────────────────── #}
+        {% if perms.sales.view_salesorder %}
+        <div class="nav-item">
+            <a href="{% url 'sales:ready-to-invoice' %}"
+            class="{% if 'sales/ready-to-invoice' in request.path %}active{% endif %}"
+            title="Ready to Invoice">
+                <span class="material-icons nav-icon" style="color:#22c55e;">receipt</span>
+                <span class="nav-label" style="color:#22c55e;">Ready to Invoice</span>
             </a>
         </div>
         {% endif %}
@@ -1039,8 +1051,8 @@
         {% if perms.sales.view_invoice %}
         <div class="nav-item">
             <a href="{% url 'sales:invoice-list' %}"
-               class="{% if 'sales/invoices' in request.path %}active{% endif %}"
-               title="Invoices">
+            class="{% if 'sales/invoices' in request.path %}active{% endif %}"
+            title="Invoices">
                 <span class="material-icons nav-icon">receipt</span>
                 <span class="nav-label">Invoices</span>
             </a>

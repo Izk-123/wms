@@ -63,14 +63,23 @@
                             {{ order.get_status_display }}
                         </span>
                         {% if order.discount_amount > 0 and not order.discount_approved %}
-                        <span class="wms-badge badge-warning">Discount Pending</span>
+                        <span class="wms-badge badge-warning" style="font-size:.65rem;">Discount Pending</span>
                         {% endif %}
                     </td>
-                    <td>MWK {{ order.total_amount|floatformat:2 }}</td>
+                    <td>{{ currency_symbol }} {{ order.total_amount|floatformat:2 }}</td>
                     <td>
-                        <a href="{% url 'sales:order-detail' order.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
-                            <span class="material-icons" style="font-size:16px;">visibility</span>
-                        </a>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'sales:order-detail' order.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            {# ── Quick Invoice Button ── #}
+                            {% if order.status == 'approved' and not order.invoices.exists %}
+                            <a href="{% url 'sales:invoice-create-from-order' order.pk %}" 
+                               class="btn-wms-primary" style="padding:.2rem .5rem; background:#22c55e;" title="Create Invoice">
+                                <span class="material-icons" style="font-size:16px;">receipt</span>
+                            </a>
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                 {% empty %}

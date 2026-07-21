@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ready to Invoice | {{ company_name|default:"WMS" }}{% endblock %}
+{% block page_title %}Ready to Invoice{% endblock %}
+
+{% block content %}
+
+{# ── Header with helpful message ─────────────────────── #}
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">Ready to Invoice</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.85rem;">
+            Approved orders that are waiting for invoice creation.
+            Click the green button to generate an invoice instantly.
+        </p>
+    </div>
+    <div>
+        <span class="wms-badge badge-info" style="font-size:.85rem;padding:.5rem 1rem;">
+            <span class="material-icons" style="font-size:18px;vertical-align:middle;">receipt</span>
+            {{ orders|length }} order{{ orders|pluralize }} ready
+        </span>
+    </div>
+</div>
+
+{# ── Helpful Alert ───────────────────────────────────── #}
+<div class="wms-alert wms-alert-info mb-3" style="font-size:.9rem;">
+    <span class="material-icons" style="font-size:20px;">info</span>
+    <div>
+        <strong>How it works:</strong> 
+        Click the <strong>Create Invoice</strong> button on any order below. 
+        The system will automatically:
+        <ul class="mb-0 mt-1" style="padding-left:1.2rem;">
+            <li>Copy all order items to the invoice</li>
+            <li>Apply the approved discount</li>
+            <li>Calculate the total amount</li>
+            <li>Generate a unique invoice number</li>
+        </ul>
+        You'll be taken to the invoice detail page where you can record payment.
+    </div>
+</div>
+
+{# ── Empty State ─────────────────────────────────────── #}
+{% if not orders %}
+<div class="wms-card">
+    <div class="empty-state" style="padding:3rem;">
+        <span class="material-icons empty-icon" style="font-size:4rem;color:#22c55e;">check_circle</span>
+        <h6>All caught up!</h6>
+        <p>All approved orders already have invoices. New orders will appear here automatically.</p>
+        <a href="{% url 'sales:order-list' %}" class="btn-wms-secondary">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">arrow_back</span>
+            View All Orders
+        </a>
+    </div>
+</div>
+{% else %}
+
+{# ── Order Cards ─────────────────────────────────────── #}
+<div class="row g-3">
+    {% for order in orders %}
+    <div class="col-12 col-md-6 col-xl-4" data-aos="fade-up" data-aos-delay="{{ forloop.counter|add:'50' }}">
+        <div class="wms-card h-100">
+            <div class="wms-card-body d-flex flex-column">
+                
+                {# ── Order Header ───────────────────── #}
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div>
+                        <div class="fw-semibold text-primary-wms" style="font-size:1rem;">
+                            {{ order.reference }}
+                        </div>
+                        <div class="text-secondary-wms" style="font-size:.82rem;">
+                            {{ order.customer.name }}
+                        </div>
+                    </div>
+                    <span class="wms-badge badge-success">Approved</span>
+                </div>
+
+                {# ── Order Details ──────────────────── #}
+                <div class="row g-1 mb-3" style="font-size:.82rem;">
+                    <div class="col-6">
+                        <span class="text-muted-wms">Order Date:</span>
+                        <span>{{ order.order_date|date:"d M Y" }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted-wms">Items:</span>
+                        <span>{{ order.items.count }}</span>
+                    </div>
+                    <div class="col-12 mt-1">
+                        <span class="text-muted-wms">Total:</span>
+                        <span class="fw-bold" style="font-size:1.1rem;">
+                            {{ currency_symbol }} {{ order.total_amount|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% if order.discount_amount > 0 %}
+                    <div class="col-12">
+                        <span class="text-muted-wms">Discount:</span>
+                        <span class="text-success">- {{ currency_symbol }} {{ order.discount_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {# ── Action Button ───────────────────── #}
+                <div class="mt-auto pt-2 border-top border-wms">
+                    <a href="{% url 'sales:invoice-create-from-order' order.pk %}" 
+                       class="btn-wms-primary w-100 d-flex align-items-center justify-content-center"
+                       style="background:#22c55e;font-size:.9rem;padding:.6rem;"
+                       title="Create invoice for {{ order.reference }}">
+                        <span class="material-icons me-2" style="font-size:20px;">receipt</span>
+                        Create Invoice
+                    </a>
+                    <div style="font-size:.7rem;color:var(--text-muted);text-align:center;margin-top:.3rem;">
+                        This will generate an invoice instantly
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{# ── Pagination ──────────────────────────────────────── #}
+{% if is_paginated %}
+<div class="d-flex justify-content-center py-3 mt-3">
+    <nav>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+            </li>
+            {% endif %}
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% endif %}
+
+{# ── Quick Link Back ─────────────────────────────────── #}
+<div class="mt-3">
+    <a href="{% url 'sales:order-list' %}" class="text-secondary-wms text-decoration-none" style="font-size:.85rem;">
+        <span class="material-icons" style="font-size:16px;vertical-align:middle;">arrow_back</span>
+        Back to All Orders
+    </a>
+</div>
+
+{% endblock %}

@@ -25,9 +25,12 @@
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span> Approve Discount
         </button>
         {% endif %}
+        {# ── Prominent Create Invoice Button ── #}
         {% if order.status == 'approved' and not order.invoices.exists %}
-        <a href="{% url 'sales:invoice-create-from-order' order.pk %}" class="btn-wms-primary" style="background:#0ea5e9;font-size:.78rem;padding:.3rem .8rem;">
-            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">receipt</span> Create Invoice
+        <a href="{% url 'sales:invoice-create-from-order' order.pk %}" 
+           class="btn-wms-primary" style="background:#22c55e;font-size:.9rem;padding:.5rem 1.2rem;">
+            <span class="material-icons me-1" style="font-size:20px;vertical-align:middle;">receipt</span>
+            Create Invoice
         </a>
         {% endif %}
     </div>
@@ -44,7 +47,7 @@
             </div>
             <div class="modal-body">
                 <p><strong>Order:</strong> {{ order.reference }}</p>
-                <p><strong>Discount:</strong> MWK {{ order.discount_amount|floatformat:2 }}</p>
+                <p><strong>Discount:</strong> {{ currency_symbol }} {{ order.discount_amount|floatformat:2 }}</p>
                 <p class="text-secondary-wms">Do you approve this discount?</p>
             </div>
             <div class="modal-footer border-wms">
@@ -61,6 +64,17 @@
                 </form>
             </div>
         </div>
+    </div>
+</div>
+{% endif %}
+
+{# ── Helpful Message for Invoicing ── #}
+{% if order.status == 'approved' and not order.invoices.exists %}
+<div class="wms-alert wms-alert-info mb-3" style="font-size:.9rem;">
+    <span class="material-icons" style="font-size:20px;">info</span>
+    <div>
+        <strong>Ready to invoice!</strong> Click the green <strong>Create Invoice</strong> button above to generate an invoice for this order.
+        The invoice will include all order items and the approved discount.
     </div>
 </div>
 {% endif %}
@@ -86,11 +100,11 @@
                                 </span>
                             </td>
                         </tr>
-                        <tr><td style="color:var(--text-muted);">Subtotal</td><td>MWK {{ order.total_before_discount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Subtotal</td><td>{{ currency_symbol }} {{ order.total_before_discount|floatformat:2 }}</td></tr>
                         {% if order.discount_amount > 0 %}
-                        <tr><td style="color:var(--text-muted);">Discount</td><td class="text-danger">- MWK {{ order.discount_amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Discount</td><td class="text-danger">- {{ currency_symbol }} {{ order.discount_amount|floatformat:2 }}</td></tr>
                         {% endif %}
-                        <tr><td style="color:var(--text-muted);"><strong>Total</strong></td><td class="fw-bold">MWK {{ order.total_amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);"><strong>Total</strong></td><td class="fw-bold">{{ currency_symbol }} {{ order.total_amount|floatformat:2 }}</td></tr>
                         <tr><td style="color:var(--text-muted);">Created by</td><td>{{ order.created_by.get_full_name }}</td></tr>
                         <tr><td style="color:var(--text-muted);">Created</td><td>{{ order.created_at|date:"d M Y H:i" }}</td></tr>
                     </tbody>
@@ -119,8 +133,8 @@
                         <tr>
                             <td>{{ item.item.name }}</td>
                             <td>{{ item.quantity }} {{ item.item.unit.symbol }}</td>
-                            <td>MWK {{ item.unit_price|floatformat:2 }}</td>
-                            <td class="fw-semibold">MWK {{ item.total|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ item.unit_price|floatformat:2 }}</td>
+                            <td class="fw-semibold">{{ currency_symbol }} {{ item.total|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -150,7 +164,7 @@
                             <td class="fw-semibold">{{ inv.reference }}</td>
                             <td>{{ inv.invoice_date|date:"d M Y" }}</td>
                             <td><span class="wms-badge {% if inv.status == 'paid' %}badge-success{% else %}badge-warning{% endif %}">{{ inv.get_status_display }}</span></td>
-                            <td>MWK {{ inv.total_amount|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ inv.total_amount|floatformat:2 }}</td>
                             <td><a href="{% url 'sales:invoice-detail' inv.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;">View</a></td>
                         </tr>
                         {% endfor %}
