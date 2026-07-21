@@ -11,16 +11,18 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
-# ── Installed Applications ─────────────────────────────
-# Third‑party packages are listed first, followed by our custom apps.
+# ───────────────────────────────────────────────────────────────
+# INSTALLED APPLICATIONS
+# ───────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    # Unfold – modern admin interface (must come before django.contrib.admin)
+    # Unfold – must come before django.contrib.admin
     'unfold',
     'unfold.contrib.filters',
     'unfold.contrib.forms',
-    
-    # Daphne – ASGI server for WebSockets
+
+    # ASGI server (for WebSockets)
     'daphne',
+
     # Django core
     'django.contrib.admin',
     'django.contrib.auth',
@@ -29,49 +31,52 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third‑party
+    # Third‑party packages
     'crispy_forms',
     'crispy_bootstrap5',
     'django_filters',
     'django_htmx',
     'axes',                     # Account lockout after failed logins
-    'channels',                 # WebSocket support for real‑time notifications
+    'channels',                 # WebSocket support
 
     # Our custom applications (alphabetical order)
-    'notifications',
-    'accounts',
-    'inventory',
-    'procurement',
-    'operations',
-    'assets',
-    'reports',
-    'sales',
-    'finance',
-    'company_settings',
-    'hr',
+    'notifications',            # In‑app and email notifications
+    'accounts',                 # Custom user model, roles, permissions
+    'inventory',                # Items, stock, warehouses
+    'procurement',              # Suppliers, purchase requests, orders, goods receipts
+    'operations',               # Projects, material requests
+    'assets',                   # Tools, equipment, assignments, maintenance
+    'reports',                  # Dashboards and reports
+    'sales',                    # Customers, sales orders, invoices, payments
+    'finance',                  # Chart of accounts, journal entries, expenses
+    'company_settings',         # Company profile, payment methods, system settings, approval rules
+    'hr',                       # Employees, leave, attendance, payroll
 ]
 
-# ── Middleware ──────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
+# MIDDLEWARE
+# ───────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',   # Static file serving in production
-    'axes.middleware.AxesMiddleware',               # Account lockout – must be after SecurityMiddleware
+    'axes.middleware.AxesMiddleware',          # Must be after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_htmx.middleware.HtmxMiddleware',        # HTMX support for partial page updates
+    'django_htmx.middleware.HtmxMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
 
-# ── Templates ───────────────────────────────────────────
+# ───────────────────────────────────────────────────────────────
+# TEMPLATES
+# ───────────────────────────────────────────────────────────────
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],           # Global templates directory
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,13 +84,12 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'accounts.context_processors.tutorial_context',  # Tutorial modal/tour state
-                'company_settings.context_processors.company_settings',  # Injects company details into every template
+                'accounts.context_processors.tutorial_context',        # Tutorial modal/tour state
+                'company_settings.context_processors.company_settings', # Company details in every template
             ],
         },
     },
 ]
-
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'        # Used for WebSockets (Channels)
 
