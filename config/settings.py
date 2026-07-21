@@ -90,8 +90,12 @@ TEMPLATES = [
         },
     },
 ]
+
+# ───────────────────────────────────────────────────────────────
+# WSGI / ASGI
+# ───────────────────────────────────────────────────────────────
 WSGI_APPLICATION = 'config.wsgi.application'
-ASGI_APPLICATION = 'config.asgi.application'        # Used for WebSockets (Channels)
+ASGI_APPLICATION = 'config.asgi.application'   # For Channels / WebSockets
 
 # ── Database ────────────────────────────────────────────
 DATABASES = {
