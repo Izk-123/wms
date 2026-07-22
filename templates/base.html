@@ -1017,8 +1017,8 @@
         {% if perms.sales.view_customer %}
         <div class="nav-item">
             <a href="{% url 'sales:customer-list' %}"
-            class="{% if 'sales/customers' in request.path %}active{% endif %}"
-            title="Customers">
+               class="{% if 'sales/customers' in request.path %}active{% endif %}"
+               title="Customers">
                 <span class="material-icons nav-icon">people</span>
                 <span class="nav-label">Customers</span>
             </a>
@@ -1028,20 +1028,20 @@
         {% if perms.sales.view_salesorder %}
         <div class="nav-item">
             <a href="{% url 'sales:order-list' %}"
-            class="{% if 'sales/orders' in request.path and 'ready-to-invoice' not in request.path %}active{% endif %}"
-            title="Sales Orders">
+               class="{% if 'sales/orders' in request.path and 'ready-to-invoice' not in request.path %}active{% endif %}"
+               title="Sales Orders">
                 <span class="material-icons nav-icon">shopping_cart</span>
                 <span class="nav-label">Sales Orders</span>
             </a>
         </div>
         {% endif %}
 
-        {# ─── NEW: Ready to Invoice ────────────────────────── #}
+        {# ─── Ready to Invoice ─────────────────────────── #}
         {% if perms.sales.view_salesorder %}
         <div class="nav-item">
             <a href="{% url 'sales:ready-to-invoice' %}"
-            class="{% if 'sales/ready-to-invoice' in request.path %}active{% endif %}"
-            title="Ready to Invoice">
+               class="{% if 'sales/ready-to-invoice' in request.path %}active{% endif %}"
+               title="Ready to Invoice">
                 <span class="material-icons nav-icon" style="color:#22c55e;">receipt</span>
                 <span class="nav-label" style="color:#22c55e;">Ready to Invoice</span>
             </a>
@@ -1051,41 +1051,58 @@
         {% if perms.sales.view_invoice %}
         <div class="nav-item">
             <a href="{% url 'sales:invoice-list' %}"
-            class="{% if 'sales/invoices' in request.path %}active{% endif %}"
-            title="Invoices">
+               class="{% if 'sales/invoices' in request.path %}active{% endif %}"
+               title="Invoices">
                 <span class="material-icons nav-icon">receipt</span>
                 <span class="nav-label">Invoices</span>
             </a>
         </div>
         {% endif %}
 
-        <!-- Finance -->
-        {% if perms.finance.view_account or perms.finance.view_journalentry or perms.finance.view_expense %}
+        <!-- ============================================ -->
+        <!-- FINANCE SECTION (UPDATED WITH NEW LINKS)     -->
+        <!-- ============================================ -->
+        {% if perms.finance.view_account or perms.finance.view_journalentry or perms.finance.view_expense or perms.finance.manage_cash_drawer or perms.finance.view_bankaccount or perms.finance.view_budget or perms.finance.view_fiscalperiod or perms.finance.view_auditlog %}
         <div class="nav-heading">Finance</div>
         {% endif %}
 
+        {# ─── Cashier Workspace ───────────────────────── #}
+        {% if perms.finance.manage_cash_drawer or perms.finance.receive_cash %}
+        <div class="nav-item">
+            <a href="{% url 'finance:cashier-dashboard' %}"
+               class="{% if 'finance/cashier' in request.path %}active{% endif %}"
+               title="Cashier Workspace">
+                <span class="material-icons nav-icon">payments</span>
+                <span class="nav-label">Cashier Workspace</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Chart of Accounts ───────────────────────── #}
         {% if perms.finance.view_account %}
         <div class="nav-item">
             <a href="{% url 'finance:account-list' %}"
                class="{% if 'finance/accounts' in request.path %}active{% endif %}"
                title="Chart of Accounts">
                 <span class="material-icons nav-icon">account_balance</span>
-                <span class="nav-label">Accounts</span>
+                <span class="nav-label">Chart of Accounts</span>
             </a>
         </div>
         {% endif %}
 
+        {# ─── Journal Entries ──────────────────────────── #}
         {% if perms.finance.view_journalentry %}
         <div class="nav-item">
             <a href="{% url 'finance:journal-list' %}"
                class="{% if 'finance/journal' in request.path %}active{% endif %}"
                title="Journal Entries">
                 <span class="material-icons nav-icon">book</span>
-                <span class="nav-label">Journal</span>
+                <span class="nav-label">Journal Entries</span>
             </a>
         </div>
         {% endif %}
 
+        {# ─── Expenses ──────────────────────────────────── #}
         {% if perms.finance.view_expense %}
         <div class="nav-item">
             <a href="{% url 'finance:expense-list' %}"
@@ -1093,6 +1110,54 @@
                title="Expenses">
                 <span class="material-icons nav-icon">money_off</span>
                 <span class="nav-label">Expenses</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Bank Accounts (NEW) ───────────────────────── #}
+        {% if perms.finance.view_bankaccount %}
+        <div class="nav-item">
+            <a href="{% url 'finance:bank-account-list' %}"
+               class="{% if 'finance/bank-accounts' in request.path %}active{% endif %}"
+               title="Bank Accounts">
+                <span class="material-icons nav-icon">account_balance</span>
+                <span class="nav-label">Bank Accounts</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Budgets (NEW) ─────────────────────────────── #}
+        {% if perms.finance.view_budget %}
+        <div class="nav-item">
+            <a href="{% url 'finance:budget-list' %}"
+               class="{% if 'finance/budgets' in request.path %}active{% endif %}"
+               title="Budgets">
+                <span class="material-icons nav-icon">request_quote</span>
+                <span class="nav-label">Budgets</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Fiscal Periods (NEW) ──────────────────────── #}
+        {% if perms.finance.view_fiscalperiod %}
+        <div class="nav-item">
+            <a href="{% url 'finance:period-list' %}"
+               class="{% if 'finance/periods' in request.path %}active{% endif %}"
+               title="Fiscal Periods">
+                <span class="material-icons nav-icon">calendar_today</span>
+                <span class="nav-label">Fiscal Periods</span>
+            </a>
+        </div>
+        {% endif %}
+
+        {# ─── Audit Log (NEW) ───────────────────────────── #}
+        {% if perms.finance.view_auditlog %}
+        <div class="nav-item">
+            <a href="{% url 'finance:audit-log' %}"
+               class="{% if 'finance/audit-log' in request.path %}active{% endif %}"
+               title="Audit Log">
+                <span class="material-icons nav-icon">history</span>
+                <span class="nav-label">Audit Log</span>
             </a>
         </div>
         {% endif %}

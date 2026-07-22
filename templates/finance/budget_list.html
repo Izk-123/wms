@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Budgets{% endblock %}
+{% block page_title %}Budgets{% endblock %}
+
+{% block content %}
+
+{% url 'finance:budget-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Budgets" page_subtitle="Department budgets" add_url=add_url add_label="New Budget" %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Fiscal Year</th>
+                    <th>Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for budget in budgets %}
+                <tr>
+                    <td>{{ budget.department.name|default:"General" }}</td>
+                    <td>{{ budget.fiscal_year }}</td>
+                    <td class="fw-semibold">{{ currency_symbol }} {{ budget.amount|floatformat:2 }}</td>
+                    <td>
+                        <a href="{% url 'finance:budget-update' budget.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">request_quote</span>
+                            <h6>No budgets found</h6>
+                            <p><a href="{% url 'finance:budget-create' %}" class="text-primary-wms">Create your first budget</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Bank Accounts{% endblock %}
+{% block page_title %}Bank Accounts{% endblock %}
+
+{% block content %}
+
+{% url 'finance:import-bank-statement' as import_url %}
+{% include 'inventory/_card_header.html' with page_title="Bank Accounts" page_subtitle="Manage bank accounts and statements" add_url=None add_label=None %}
+
+<div class="row g-3">
+    <div class="col-12">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Accounts</h6>
+                <a href="#" class="btn-wms-primary" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">upload_file</span>
+                    Import Statement
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Bank</th>
+                            <th>Account Number</th>
+                            <th>Branch</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td>{{ account.account.code }} – {{ account.account.name }}</td>
+                            <td>{{ account.bank_name }}</td>
+                            <td>{{ account.account_number }}</td>
+                            <td>{{ account.branch|default:"—" }}</td>
+                            <td>
+                                {% if account.is_active %}
+                                <span class="wms-badge badge-success">Active</span>
+                                {% else %}
+                                <span class="wms-badge badge-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'finance:bank-reconciliation' account.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Reconcile">
+                                    <span class="material-icons" style="font-size:16px;">sync</span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <span class="material-icons empty-icon">account_balance</span>
+                                    <h6>No bank accounts found</h6>
+                                    <p>Add a bank account via the admin panel.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Import Statement Modal ────────────────────────────────────── #}
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-wms">
+                <h6 class="modal-title text-primary-wms">Import Bank Statement</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'finance:import-bank-statement' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-group mb-3">
+                        <label class="form-label-wms">Bank Account</label>
+                        <select name="account" class="form-select-wms" required>
+                            <option value="">Select account</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.pk }}">{{ account.bank_name }} – {{ account.account_number }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">CSV File</label>
+                        <input type="file" name="statement_file" class="form-control-wms" accept=".csv" required>
+                        <small class="text-muted-wms">Columns: date, reference, description, amount</small>
+                    </div>
+                </div>
+                <div class="modal-footer border-wms">
+                    <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-wms-primary">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Supplier Bills{% endblock %}
+{% block page_title %}Supplier Bills{% endblock %}
+
+{% block content %}
+
+{% url 'finance:supplier-bill-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Supplier Bills" page_subtitle="Accounts payable" add_url=add_url add_label="New Bill" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'finance:supplier-bill-list' %}"
+                    hx-trigger="change"
+                    hx-target="#bill-table">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'finance:supplier-bill-list' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="wms-card" id="bill-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Reference</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Balance Due</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Created By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for bill in bills %}
+                <tr>
+                    <td class="fw-semibold">
+                        <a href="{% url 'finance:supplier-bill-detail' bill.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ bill.reference }}
+                        </a>
+                    </td>
+                    <td>{{ bill.supplier.name }}</td>
+                    <td class="fw-semibold">MWK {{ bill.amount|floatformat:2 }}</td>
+                    <td class="{% if bill.balance_due > 0 %}text-danger{% endif %} fw-semibold">MWK {{ bill.balance_due|floatformat:2 }}</td>
+                    <td>{{ bill.due_date|date:"d M Y"|default:"—" }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if bill.status == 'draft' %}badge-neutral
+                            {% elif bill.status == 'pending_approval' %}badge-warning
+                            {% elif bill.status == 'approved' %}badge-info
+                            {% elif bill.status == 'paid' %}badge-success
+                            {% elif bill.status == 'rejected' %}badge-danger
+                            {% endif %}">
+                            {{ bill.get_status_display }}
+                        </span>
+                    </td>
+                    <td style="color:var(--text-muted);">{{ bill.created_by.get_full_name }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">receipt_long</span>
+                            <h6>No supplier bills found</h6>
+                            <p><a href="{% url 'finance:supplier-bill-create' %}" class="text-primary-wms">Record your first bill</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

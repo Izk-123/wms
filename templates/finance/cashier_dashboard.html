@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% block title %}Cashier Workspace{% endblock %}
+{% block page_title %}Cashier Workspace{% endblock %}
+
+{% block content %}
+
+<div class="row g-3">
+
+    {# ── Drawer Status ── #}
+    <div class="col-12 col-md-6" data-aos="fade-up">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Cash Drawer</h6></div>
+            <div class="wms-card-body">
+                {% if drawer %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="wms-badge badge-success">Open</span>
+                        <span class="text-muted-wms" style="font-size:.8rem;">since {{ drawer.opened_at|date:"d M Y H:i" }}</span>
+                    </div>
+                    <div class="row g-2 mt-1" style="font-size:.85rem;">
+                        <div class="col-6">
+                            <div style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;">Opening Balance</div>
+                            <div class="fw-bold">{{ currency_symbol }} {{ drawer.opening_balance|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;">Running Balance</div>
+                            <div class="fw-bold" style="color:#3b82f6;">{{ currency_symbol }} {{ drawer_running_balance|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;">Cash In</div>
+                            <div class="fw-bold text-success">{{ currency_symbol }} {{ drawer_cash_in|floatformat:2 }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div style="color:var(--text-muted);font-size:.7rem;text-transform:uppercase;">Cash Out</div>
+                            <div class="fw-bold text-danger">{{ currency_symbol }} {{ drawer_cash_out|floatformat:2 }}</div>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'finance:close-drawer' %}" class="mt-3 pt-3 border-top border-wms">
+                        {% csrf_token %}
+                        <label class="form-label-wms">Closing Balance</label>
+                        <div class="input-group">
+                            <input type="number" name="closing_balance" class="form-control-wms" step="0.01" placeholder="Actual cash counted" required>
+                            <button type="submit" class="btn-wms-primary" style="background:#ef4444;">Close Drawer</button>
+                        </div>
+                    </form>
+                {% else %}
+                    <p class="text-secondary-wms">No open drawer. Open one to start recording cash transactions.</p>
+                    <form method="post" action="{% url 'finance:open-drawer' %}">
+                        {% csrf_token %}
+                        <label class="form-label-wms">Opening Balance</label>
+                        <div class="input-group">
+                            <input type="number" name="opening_balance" class="form-control-wms" step="0.01" value="0" required>
+                            <button type="submit" class="btn-wms-primary" style="background:#22c55e;">Open Drawer</button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ── Today's Summary ── #}
+    <div class="col-12 col-md-6" data-aos="fade-up" data-aos-delay="50">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Today's Summary</h6></div>
+            <div class="wms-card-body">
+                <div class="d-flex justify-content-between mb-2"><span>Collections (all methods)</span><span class="fw-bold text-success">{{ currency_symbol }} {{ today_collections|floatformat:2 }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span>Cash In (this drawer)</span><span class="fw-bold text-success">{{ currency_symbol }} {{ drawer_cash_in|floatformat:2 }}</span></div>
+                <div class="d-flex justify-content-between"><span>Cash Out (this drawer)</span><span class="fw-bold text-danger">{{ currency_symbol }} {{ drawer_cash_out|floatformat:2 }}</span></div>
+                <hr>
+                <div class="d-flex justify-content-between"><span class="fw-bold">Net (this drawer)</span><span class="fw-bold">{{ currency_symbol }} {{ drawer_running_balance|floatformat:2 }}</span></div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Quick Actions ── #}
+    <div class="col-12" data-aos="fade-up" data-aos-delay="100">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                        <a href="{% url 'sales:invoice-list' %}" class="btn-wms-primary w-100">Receive Payment</a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{% url 'finance:supplier-bill-list' %}" class="btn-wms-secondary w-100">Supplier Payment</a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{% url 'finance:expense-create' %}" class="btn-wms-secondary w-100">Record Expense</a>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <a href="{% url 'finance:expense-list' %}" class="btn-wms-secondary w-100">View Expenses</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ── Recent Transactions ── #}
+    <div class="col-12" data-aos="fade-up" data-aos-delay="150">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Recent Drawer Transactions</h6></div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Reference</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in today_transactions %}
+                        <tr>
+                            <td>
+                                <span class="wms-badge {% if t.is_inflow %}badge-success{% else %}badge-danger{% endif %}">
+                                    {{ t.get_transaction_type_display }}
+                                </span>
+                            </td>
+                            <td class="fw-semibold">{{ currency_symbol }} {{ t.amount|floatformat:2 }}</td>
+                            <td>{{ t.description }}</td>
+                            <td style="color:var(--text-muted);">{{ t.reference|default:"—" }}</td>
+                            <td style="color:var(--text-muted);font-size:.78rem;">{{ t.created_at|date:"d M H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <span class="material-icons empty-icon">point_of_sale</span>
+                                    <h6>No transactions yet</h6>
+                                    <p>Cash movements against your drawer will appear here</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ── Recent Closed Drawers ── #}
+    {% if recent_drawers %}
+    <div class="col-12" data-aos="fade-up" data-aos-delay="200">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Recent Closed Drawers</h6></div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Opened</th>
+                            <th>Closed</th>
+                            <th>Opening</th>
+                            <th>Closing</th>
+                            <th>Expected</th>
+                            <th>Difference</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in recent_drawers %}
+                        <tr>
+                            <td>{{ d.opened_at|date:"d M Y H:i" }}</td>
+                            <td>{{ d.closed_at|date:"d M Y H:i" }}</td>
+                            <td>{{ currency_symbol }} {{ d.opening_balance|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ d.closing_balance|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ d.expected_balance|floatformat:2 }}</td>
+                            <td class="fw-bold {% if d.difference < 0 %}text-danger{% elif d.difference > 0 %}text-success{% endif %}">
+                                {{ currency_symbol }} {{ d.difference|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

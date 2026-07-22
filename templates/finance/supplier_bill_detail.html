@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% block title %}{{ bill.reference }}{% endblock %}
+{% block page_title %}Supplier Bill Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'finance:supplier-bill-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ bill.reference }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            {{ bill.supplier.name }} &middot; {{ bill.created_at|date:"d M Y" }}
+        </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        {% if bill.status == 'pending_approval' and perms.finance.approve_supplierbill %}
+        <button class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;" data-bs-toggle="modal" data-bs-target="#approveModal">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span> Approve
+        </button>
+        {% endif %}
+        {% if bill.status == 'approved' and perms.finance.pay_supplierbill %}
+        <button class="btn-wms-primary" style="background:#0ea5e9;font-size:.78rem;padding:.3rem .8rem;" data-bs-toggle="modal" data-bs-target="#payModal">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">payments</span> Record Payment
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Approval Modal ───────────────────────────────────── #}
+{% if bill.status == 'pending_approval' %}
+<div class="modal fade" id="approveModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-wms">
+                <h6 class="modal-title text-primary-wms">Approve Supplier Bill</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Reference:</strong> {{ bill.reference }}</p>
+                <p><strong>Supplier:</strong> {{ bill.supplier.name }}</p>
+                <p><strong>Amount:</strong> MWK {{ bill.amount|floatformat:2 }}</p>
+                <p class="text-secondary-wms">Do you approve this bill?</p>
+            </div>
+            <div class="modal-footer border-wms">
+                <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'finance:supplier-bill-approve' bill.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit" class="btn-wms-primary" style="background:#22c55e;">Approve</button>
+                </form>
+                <form method="post" action="{% url 'finance:supplier-bill-approve' bill.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    <button type="submit" class="btn-wms-primary" style="background:#ef4444;">Reject</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ── Pay Modal ─────────────────────────────────────────── #}
+{% if bill.status == 'approved' %}
+<div class="modal fade" id="payModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-wms">
+                <h6 class="modal-title text-primary-wms">Record Payment</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'finance:supplier-bill-pay' bill.pk %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p><strong>Bill:</strong> {{ bill.reference }}</p>
+                    <p><strong>Balance Due:</strong> MWK {{ bill.balance_due|floatformat:2 }}</p>
+                    <div class="form-group mb-3">
+                        <label class="form-label-wms">Payment Amount</label>
+                        <input type="number" name="amount" class="form-control-wms" step="0.01"
+                               min="0.01" max="{{ bill.balance_due }}" value="{{ bill.balance_due }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label-wms">Payment Method</label>
+                        <select name="payment_method" class="form-select-wms">
+                            <option value="CASH">Cash</option>
+                            <option value="BANK">Bank Transfer</option>
+                            <option value="AIRTE">Airtel Money</option>
+                            <option value="MPAMB">TNM Mpamba</option>
+                            <option value="CHEQUE">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-wms">
+                    <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-wms-primary" style="background:#22c55e;">Confirm Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 fade-in">
+    <div class="col-12 col-lg-4">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Bill Details</h6>
+                <table class="wms-table" style="font-size:.85rem;">
+                    <tbody>
+                        <tr><td style="color:var(--text-muted);">Status</td>
+                            <td>
+                                <span class="wms-badge
+                                    {% if bill.status == 'draft' %}badge-neutral
+                                    {% elif bill.status == 'pending_approval' %}badge-warning
+                                    {% elif bill.status == 'approved' %}badge-info
+                                    {% elif bill.status == 'paid' %}badge-success
+                                    {% elif bill.status == 'rejected' %}badge-danger
+                                    {% endif %}">
+                                    {{ bill.get_status_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr><td style="color:var(--text-muted);">Supplier</td><td>{{ bill.supplier.name }}</td></tr>
+                        {% if bill.purchase_order %}
+                        <tr><td style="color:var(--text-muted);">Purchase Order</td><td>{{ bill.purchase_order }}</td></tr>
+                        {% endif %}
+                        <tr><td style="color:var(--text-muted);">Amount</td><td class="fw-bold">MWK {{ bill.amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Paid</td><td>MWK {{ bill.paid_amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Balance Due</td><td class="fw-bold {% if bill.balance_due > 0 %}text-danger{% endif %}">MWK {{ bill.balance_due|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Due Date</td><td>{{ bill.due_date|date:"d M Y"|default:"—" }}</td></tr>
+                        {% if bill.approved_by %}
+                        <tr><td style="color:var(--text-muted);">Approved By</td><td>{{ bill.approved_by.get_full_name }}</td></tr>
+                        {% endif %}
+                        {% if bill.paid_by %}
+                        <tr><td style="color:var(--text-muted);">Paid By</td><td>{{ bill.paid_by.get_full_name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Payment Method</td><td>{{ bill.get_payment_method_display }}</td></tr>
+                        {% endif %}
+                        <tr><td style="color:var(--text-muted);">Created By</td><td>{{ bill.created_by.get_full_name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Created</td><td>{{ bill.created_at|date:"d M Y H:i" }}</td></tr>
+                    </tbody>
+                </table>
+                {% if bill.description %}
+                <p class="text-secondary-wms mt-2 mb-0" style="font-size:.85rem;">{{ bill.description }}</p>
+                {% endif %}
+                {% if bill.notes %}
+                <p class="text-secondary-wms mt-1 mb-0" style="font-size:.85rem;"><em>{{ bill.notes }}</em></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Bill Timeline</h6>
+            </div>
+            <div class="wms-card-body">
+                <ul class="list-unstyled" style="font-size:.85rem;">
+                    <li class="d-flex gap-3 pb-3 border-bottom border-wms">
+                        <span class="material-icons" style="color:var(--text-muted);">create</span>
+                        <div>
+                            <strong>Created</strong> by {{ bill.created_by.get_full_name }}
+                            <span class="text-muted-wms ms-2">{{ bill.created_at|date:"d M Y H:i" }}</span>
+                        </div>
+                    </li>
+                    {% if bill.status == 'pending_approval' or bill.status == 'approved' or bill.status == 'paid' %}
+                    <li class="d-flex gap-3 pt-3 pb-3 border-bottom border-wms">
+                        <span class="material-icons" style="color:#f59e0b;">pending</span>
+                        <div>
+                            <strong>Submitted for Approval</strong>
+                            <span class="text-muted-wms ms-2">{{ bill.updated_at|date:"d M Y H:i" }}</span>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if bill.approved_by %}
+                    <li class="d-flex gap-3 pt-3 pb-3 border-bottom border-wms">
+                        <span class="material-icons" style="color:#22c55e;">check_circle</span>
+                        <div>
+                            <strong>Approved</strong> by {{ bill.approved_by.get_full_name }}
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if bill.paid_by %}
+                    <li class="d-flex gap-3 pt-3">
+                        <span class="material-icons" style="color:#0ea5e9;">payments</span>
+                        <div>
+                            <strong>{% if bill.status == 'paid' %}Fully Paid{% else %}Part-Paid{% endif %}</strong> by {{ bill.paid_by.get_full_name }}
+                            <span class="text-muted-wms ms-2">{{ bill.updated_at|date:"d M Y H:i" }}</span>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

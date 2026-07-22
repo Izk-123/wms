@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Reconcile {{ account.bank_name }}{% endblock %}
+{% block page_title %}Bank Reconciliation{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'finance:bank-account-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ account.bank_name }} – {{ account.account_number }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">Reconcile transactions with bank statement</p>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-6">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Unreconciled System Transactions</h6></div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tx in transactions %}
+                        <tr>
+                            <td>{{ tx.date|date:"d M Y" }}</td>
+                            <td>{{ tx.description }}</td>
+                            <td class="fw-semibold {% if tx.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ currency_symbol }} {{ tx.amount|floatformat:2 }}
+                            </td>
+                            <td>
+                                <button class="btn-wms-secondary" style="padding:.2rem .5rem;" data-bs-toggle="modal" data-bs-target="#matchModal" data-txid="{{ tx.pk }}" data-txamount="{{ tx.amount }}" data-txdesc="{{ tx.description }}">
+                                    <span class="material-icons" style="font-size:16px;">link</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted-wms">All transactions reconciled.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Unreconciled Bank Statements</h6></div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stmt in statements %}
+                        <tr>
+                            <td>{{ stmt.statement_date|date:"d M Y" }}</td>
+                            <td>{{ stmt.description }}</td>
+                            <td class="fw-semibold {% if stmt.amount >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ currency_symbol }} {{ stmt.amount|floatformat:2 }}
+                            </td>
+                            <td>
+                                <button class="btn-wms-secondary" style="padding:.2rem .5rem;" data-bs-toggle="modal" data-bs-target="#matchModal" data-stmtid="{{ stmt.pk }}" data-stmtamount="{{ stmt.amount }}" data-stmtdesc="{{ stmt.description }}">
+                                    <span class="material-icons" style="font-size:16px;">link</span>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted-wms">All statements reconciled.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mt-3">
+    <div class="col-12">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post" action="{% url 'finance:bank-reconciliation' account.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="complete">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-6 col-md-3">
+                            <label class="form-label-wms">Opening Balance</label>
+                            {{ reconciliation_form.opening_balance }}
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label-wms">Closing Balance</label>
+                            {{ reconciliation_form.closing_balance }}
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <button type="submit" class="btn-wms-primary w-100" style="background:#22c55e;">Complete Reconciliation</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ── Match Modal ────────────────────────────────────────────────── #}
+<div class="modal fade" id="matchModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-wms">
+                <h6 class="modal-title text-primary-wms">Match Transaction</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'finance:bank-reconciliation' account.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="match">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-wms">System Transaction</label>
+                        <select name="transaction_id" id="txSelect" class="form-select-wms" required>
+                            <option value="">Select transaction</option>
+                            {% for tx in transactions %}
+                            <option value="{{ tx.pk }}" data-amount="{{ tx.amount }}">{{ tx.date|date:"d M Y" }} – {{ tx.description }} ({{ tx.amount }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-wms">Bank Statement Line</label>
+                        <select name="statement_id" id="stmtSelect" class="form-select-wms" required>
+                            <option value="">Select statement</option>
+                            {% for stmt in statements %}
+                            <option value="{{ stmt.pk }}" data-amount="{{ stmt.amount }}">{{ stmt.statement_date|date:"d M Y" }} – {{ stmt.description }} ({{ stmt.amount }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="alert alert-info" id="matchInfo" style="display:none;">
+                        <span>Amounts match: <strong id="matchAmount"></strong></span>
+                    </div>
+                </div>
+                <div class="modal-footer border-wms">
+                    <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-wms-primary" id="matchBtn" disabled>Match</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const txSelect = document.getElementById('txSelect');
+    const stmtSelect = document.getElementById('stmtSelect');
+    const matchBtn = document.getElementById('matchBtn');
+    const matchInfo = document.getElementById('matchInfo');
+    const matchAmount = document.getElementById('matchAmount');
+
+    function checkMatch() {
+        const tx = txSelect.options[txSelect.selectedIndex];
+        const stmt = stmtSelect.options[stmtSelect.selectedIndex];
+        if (tx && stmt && tx.value && stmt.value) {
+            const txAmount = parseFloat(tx.dataset.amount);
+            const stmtAmount = parseFloat(stmt.dataset.amount);
+            if (Math.abs(txAmount - stmtAmount) < 0.01) {
+                matchAmount.textContent = txAmount.toFixed(2);
+                matchInfo.style.display = 'block';
+                matchBtn.disabled = false;
+            } else {
+                matchInfo.style.display = 'none';
+                matchBtn.disabled = true;
+            }
+        } else {
+            matchInfo.style.display = 'none';
+            matchBtn.disabled = true;
+        }
+    }
+
+    txSelect.addEventListener('change', checkMatch);
+    stmtSelect.addEventListener('change', checkMatch);
+});
+</script>
+
+{% endblock %}

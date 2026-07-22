@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block title %}Fiscal Periods{% endblock %}
+{% block page_title %}Fiscal Periods{% endblock %}
+
+{% block content %}
+
+{% url 'finance:period-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Fiscal Periods" page_subtitle="Manage fiscal periods and month‑end closing" add_url=add_url add_label="New Period" %}
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Period</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                    <th>Closed By</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in periods %}
+                <tr>
+                    <td class="fw-semibold">{{ period.name }}</td>
+                    <td>{{ period.start_date|date:"d M Y" }}</td>
+                    <td>{{ period.end_date|date:"d M Y" }}</td>
+                    <td>
+                        {% if period.is_closed %}
+                        <span class="wms-badge badge-success">Closed</span>
+                        {% else %}
+                        <span class="wms-badge badge-neutral">Open</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ period.closed_by.get_full_name|default:"—" }}</td>
+                    <td>
+                        {% if not period.is_closed %}
+                        <form method="post" action="{% url 'finance:period-close' period.pk %}" style="display:inline;" onsubmit="return confirm('Close period {{ period.name }}? This action is irreversible.');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-wms-primary" style="background:#ef4444;padding:.2rem .5rem;font-size:.75rem;">
+                                <span class="material-icons" style="font-size:16px;vertical-align:middle;">lock</span> Close
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">calendar_today</span>
+                            <h6>No fiscal periods created</h6>
+                            <p><a href="{% url 'finance:period-create' %}" class="text-primary-wms">Create your first period</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
