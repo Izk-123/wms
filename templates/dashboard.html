@@ -4,223 +4,478 @@
 
 {% block content %}
 
-{# ── Stat Cards ───────────────────────────────────────── #}
-<div class="row g-3 mb-4">
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="0">
+{# ── Welcome Banner ────────────────────────────────────── #}
+<div class="mb-4 fade-in" data-aos="fade-up">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div>
+            <h5 class="fw-bold mb-0 text-primary-wms">👋 Welcome back, {{ request.user.get_full_name|default:request.user.username }}!</h5>
+            <p class="text-secondary-wms mb-0" style="font-size:.9rem;">
+                {% if user_role == "System Administrator" %}
+                Here's your system overview.
+                {% elif user_role == "Sales Representative" or user_role == "Sales Manager" %}
+                Here's your sales overview.
+                {% elif user_role == "Cashier" %}
+                Here's your cashier workspace.
+                {% elif user_role == "Accountant" or user_role == "Finance Manager" %}
+                Here's your financial overview.
+                {% elif user_role == "HR Manager" or user_role == "HR Officer" %}
+                Here's your HR overview.
+                {% else %}
+                Here's your personalized dashboard.
+                {% endif %}
+                <span class="text-muted-wms" style="font-size:.8rem;">{{ today|date:"l, d F Y" }}</span>
+            </p>
+        </div>
+        {% if ready_to_invoice_count > 0 and perms.sales.view_salesorder %}
+        <div class="ms-auto">
+            <a href="{% url 'sales:ready-to-invoice' %}" class="btn-wms-primary" style="background:#22c55e;padding:.4rem 1rem;">
+                <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">receipt</span>
+                {{ ready_to_invoice_count }} order{{ ready_to_invoice_count|pluralize }} ready to invoice
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 1: INVENTORY                                     #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.inventory.view_stock_report or perms.inventory.view_item %}
+<div class="row g-3 mb-4" data-aos="fade-up">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">inventory_2</span>
+            Inventory
+        </h6>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(59,130,246,.12);">
-                    <span class="material-icons" style="color:#3b82f6;">inventory_2</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                <span class="material-icons" style="color:#3b82f6;">inventory_2</span>
             </div>
-            <div class="stat-value">{{ total_items }}</div>
+            <div class="stat-value">{{ total_items|default:0 }}</div>
             <div class="stat-label">Total Items</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="50">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(34,197,94,.12);">
-                    <span class="material-icons" style="color:#22c55e;">warehouse</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">warehouse</span>
             </div>
-            <div class="stat-value">{{ total_warehouses }}</div>
+            <div class="stat-value">{{ total_warehouses|default:0 }}</div>
             <div class="stat-label">Warehouses</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="100">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(239,68,68,.12);">
-                    <span class="material-icons" style="color:#ef4444;">warning</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">warning</span>
             </div>
             <div class="stat-value" style="color:{% if low_stock_count > 0 %}#ef4444{% endif %};">
-                {{ low_stock_count }}
+                {{ low_stock_count|default:0 }}
             </div>
             <div class="stat-label">Low Stock</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="150">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(14,165,233,.12);">
-                    <span class="material-icons" style="color:#0ea5e9;">construction</span>
-                </div>
-            </div>
-            <div class="stat-value">{{ active_projects }}</div>
-            <div class="stat-label">Active Projects</div>
-        </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="200">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(245,158,11,.12);">
-                    <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
-                </div>
-            </div>
-            <div class="stat-value" style="color:{% if pending_orders > 0 %}#f59e0b{% endif %};">
-                {{ pending_orders }}
-            </div>
-            <div class="stat-label">Open POs</div>
-        </div>
-    </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="250">
-        <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(139,92,246,.12);">
-                    <span class="material-icons" style="color:#8b5cf6;">payments</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(139,92,246,.12);">
+                <span class="material-icons" style="color:#8b5cf6;">payments</span>
             </div>
             <div class="stat-value" style="font-size:1.2rem;">
-                {{ currency_symbol }} {{ stock_value|floatformat:0 }}
+                {{ currency_symbol }} {{ stock_value|floatformat:0|default:0 }}
             </div>
             <div class="stat-label">Stock Value</div>
         </div>
     </div>
-
-    {# Row 2 – Sales, Finance, HR #}
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="300">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(34,197,94,.12);">
-                    <span class="material-icons" style="color:#22c55e;">receipt</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">move_to_inbox</span>
+            </div>
+            <div class="stat-value" style="color:#22c55e;">{{ received_today|default:0 }}</div>
+            <div class="stat-label">Received Today</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">outbox</span>
+            </div>
+            <div class="stat-value" style="color:#ef4444;">{{ issued_today|default:0 }}</div>
+            <div class="stat-label">Issued Today</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 2: SALES                                         #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.sales.view_invoice or perms.sales.view_salesorder %}
+<div class="row g-3 mb-4" data-aos="fade-up" data-aos-delay="50">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">receipt</span>
+            Sales
+        </h6>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">today</span>
             </div>
             <div class="stat-value" style="font-size:1.2rem;">
-                {{ currency_symbol }} {{ today_sales|floatformat:0 }}
+                {{ currency_symbol }} {{ today_sales|floatformat:0|default:0 }}
             </div>
             <div class="stat-label">Today's Sales</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="350">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(239,68,68,.12);">
-                    <span class="material-icons" style="color:#ef4444;">receipt_long</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                <span class="material-icons" style="color:#3b82f6;">date_range</span>
+            </div>
+            <div class="stat-value" style="font-size:1.2rem;">
+                {{ currency_symbol }} {{ monthly_sales|floatformat:0|default:0 }}
+            </div>
+            <div class="stat-label">Monthly Sales</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">receipt_long</span>
             </div>
             <div class="stat-value" style="color:{% if outstanding_invoices > 0 %}#ef4444{% endif %};">
-                {{ outstanding_invoices }}
+                {{ outstanding_invoices|default:0 }}
             </div>
             <div class="stat-label">Outstanding Invoices</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="400">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(139,92,246,.12);">
-                    <span class="material-icons" style="color:#8b5cf6;">account_balance</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
+            </div>
+            <div class="stat-value" style="color:{% if pending_sales_orders > 0 %}#f59e0b{% endif %};">
+                {{ pending_sales_orders|default:0 }}
+            </div>
+            <div class="stat-label">Pending Orders</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">receipt</span>
+            </div>
+            <div class="stat-value" style="color:{% if ready_to_invoice_count > 0 %}#22c55e{% endif %};">
+                {{ ready_to_invoice_count|default:0 }}
+            </div>
+            <div class="stat-label">Ready to Invoice</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 3: FINANCE                                       #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.finance.view_account or perms.finance.view_expense %}
+<div class="row g-3 mb-4" data-aos="fade-up" data-aos-delay="100">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">account_balance</span>
+            Finance
+        </h6>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(139,92,246,.12);">
+                <span class="material-icons" style="color:#8b5cf6;">account_balance</span>
             </div>
             <div class="stat-value" style="font-size:1.2rem;">
-                {{ currency_symbol }} {{ cash_balance|floatformat:0 }}
+                {{ currency_symbol }} {{ cash_balance|floatformat:0|default:0 }}
             </div>
             <div class="stat-label">Cash in Hand</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="450">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(59,130,246,.12);">
-                    <span class="material-icons" style="color:#3b82f6;">money_off</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">trending_up</span>
             </div>
-            <div class="stat-value" style="font-size:1.2rem;color:{% if expenses_this_month > 0 %}#ef4444{% endif %};">
-                {{ currency_symbol }} {{ expenses_this_month|floatformat:0 }}
+            <div class="stat-value" style="font-size:1.2rem;">
+                {{ currency_symbol }} {{ total_revenue|floatformat:0|default:0 }}
+            </div>
+            <div class="stat-label">Revenue (Month)</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">trending_down</span>
+            </div>
+            <div class="stat-value" style="font-size:1.2rem;color:#ef4444;">
+                {{ currency_symbol }} {{ total_expenses|floatformat:0|default:0 }}
             </div>
             <div class="stat-label">Expenses (Month)</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="500">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(14,165,233,.12);">
-                    <span class="material-icons" style="color:#0ea5e9;">people</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">account_balance</span>
             </div>
-            <div class="stat-value">{{ total_employees }}</div>
-            <div class="stat-label">Employees</div>
+            <div class="stat-value" style="font-size:1.2rem;color:{% if net_profit >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
+                {{ currency_symbol }} {{ net_profit|floatformat:0|default:0 }}
+            </div>
+            <div class="stat-label">Net Profit (Month)</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="550">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(245,158,11,.12);">
-                    <span class="material-icons" style="color:#f59e0b;">event</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
             </div>
-            <div class="stat-value" style="color:{% if pending_leave_requests > 0 %}#f59e0b{% endif %};">
-                {{ pending_leave_requests }}
+            <div class="stat-value" style="color:{% if pending_expenses > 0 %}#f59e0b{% endif %};">
+                {{ pending_expenses|default:0 }}
+            </div>
+            <div class="stat-label">Pending Expenses</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 4: HUMAN RESOURCES                               #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.hr.view_employee or perms.hr.view_attendance %}
+<div class="row g-3 mb-4" data-aos="fade-up" data-aos-delay="150">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">people</span>
+            Human Resources
+        </h6>
+    </div>
+
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                <span class="material-icons" style="color:#3b82f6;">people</span>
+            </div>
+            <div class="stat-value">{{ total_employees|default:0 }}</div>
+            <div class="stat-label">Total Employees</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                <span class="material-icons" style="color:#f59e0b;">event_busy</span>
+            </div>
+            <div class="stat-value" style="color:{% if employees_on_leave_today > 0 %}#f59e0b{% endif %};">
+                {{ employees_on_leave_today|default:0 }}
+            </div>
+            <div class="stat-label">On Leave Today</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">pending_actions</span>
+            </div>
+            <div class="stat-value" style="color:{% if pending_leave_requests > 0 %}#ef4444{% endif %};">
+                {{ pending_leave_requests|default:0 }}
             </div>
             <div class="stat-label">Pending Leave</div>
         </div>
     </div>
-
-    <div class="col-6 col-sm-4 col-xl-2" data-aos="fade-up" data-aos-delay="600">
+    <div class="col-6 col-sm-4 col-xl-2">
         <div class="stat-card">
-            <div class="d-flex align-items-center justify-content-between mb-2">
-                <div class="stat-icon" style="background:rgba(34,197,94,.12);">
-                    <span class="material-icons" style="color:#22c55e;">access_time</span>
-                </div>
+            <div class="stat-icon" style="background:rgba(34,197,94,.12);">
+                <span class="material-icons" style="color:#22c55e;">access_time</span>
             </div>
-            <div class="stat-value">{{ clocked_in_today }}</div>
+            <div class="stat-value">{{ clocked_in_today|default:0 }}</div>
             <div class="stat-label">Clocked In Today</div>
         </div>
     </div>
 </div>
+{% endif %}
 
-{# ── Today Activity Bar ────────────────────────────────── #}
-<div class="wms-card mb-4" data-aos="fade-up">
-    <div class="wms-card-body py-3">
-        <div class="row g-3 text-center">
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">Received Today</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#22c55e;">{{ received_today }}</div>
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 5: PROCUREMENT & OPERATIONS                     #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.procurement.view_purchaseorder or perms.operations.view_project %}
+<div class="row g-3 mb-4" data-aos="fade-up" data-aos-delay="200">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">local_shipping</span>
+            Procurement & Operations
+        </h6>
+    </div>
+
+    {% if perms.procurement.view_purchaseorder %}
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(245,158,11,.12);">
+                <span class="material-icons" style="color:#f59e0b;">pending_actions</span>
             </div>
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">Issued Today</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ issued_today }}</div>
+            <div class="stat-value" style="color:{% if pending_orders > 0 %}#f59e0b{% endif %};">
+                {{ pending_orders|default:0 }}
             </div>
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">Open POs</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#3b82f6;">{{ pending_orders }}</div>
+            <div class="stat-label">Open POs</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(59,130,246,.12);">
+                <span class="material-icons" style="color:#3b82f6;">request_page</span>
             </div>
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">Maintenance Due</div>
-                <div style="font-size:1.2rem;font-weight:800;color:{% if assets_due_maintenance > 0 %}#f59e0b{% else %}var(--text-primary){% endif %};">{{ assets_due_maintenance }}</div>
+            <div class="stat-value" style="color:{% if pending_pr_approvals > 0 %}#3b82f6{% endif %};">
+                {{ pending_pr_approvals|default:0 }}
             </div>
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">Sales Today</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#22c55e;">{{ currency_symbol }} {{ today_sales|floatformat:0 }}</div>
+            <div class="stat-label">Pending PR Approvals</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if perms.operations.view_project %}
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(14,165,233,.12);">
+                <span class="material-icons" style="color:#0ea5e9;">construction</span>
             </div>
-            <div class="col-4 col-md-2">
-                <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:.25rem;">On Leave</div>
-                <div style="font-size:1.2rem;font-weight:800;color:#f59e0b;">{{ employees_on_leave_today }}</div>
+            <div class="stat-value">{{ active_projects|default:0 }}</div>
+            <div class="stat-label">Active Projects</div>
+        </div>
+    </div>
+    {% endif %}
+    {% if perms.assets.view_asset %}
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(14,165,233,.12);">
+                <span class="material-icons" style="color:#0ea5e9;">build</span>
+            </div>
+            <div class="stat-value">{{ assets_assigned|default:0 }}</div>
+            <div class="stat-label">Assets Assigned</div>
+        </div>
+    </div>
+    <div class="col-6 col-sm-4 col-xl-2">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(239,68,68,.12);">
+                <span class="material-icons" style="color:#ef4444;">engineering</span>
+            </div>
+            <div class="stat-value" style="color:{% if assets_due_maintenance > 0 %}#ef4444{% endif %};">
+                {{ assets_due_maintenance|default:0 }}
+            </div>
+            <div class="stat-label">Maintenance Due</div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 6: QUICK ACTIONS                                 #}
+{# ───────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4" data-aos="fade-up" data-aos-delay="250">
+    <div class="col-12">
+        <h6 class="fw-semibold text-secondary-wms" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;">
+            <span class="material-icons" style="font-size:16px;vertical-align:middle;">bolt</span>
+            Quick Actions
+        </h6>
+    </div>
+
+    <div class="col-12">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <div class="row g-2">
+                    {% if perms.inventory.receive_stock %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'inventory:stock-receive' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(34,197,94,.15)'" onmouseout="this.style.background='rgba(34,197,94,.08)'">
+                            <span class="material-icons" style="color:#22c55e;font-size:24px;">move_to_inbox</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Receive Stock</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.inventory.issue_stock %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'inventory:stock-issue' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(239,68,68,.15)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">
+                            <span class="material-icons" style="color:#ef4444;font-size:24px;">outbox</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Issue Stock</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.sales.add_invoice %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'sales:invoice-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(59,130,246,.15)'" onmouseout="this.style.background='rgba(59,130,246,.08)'">
+                            <span class="material-icons" style="color:#3b82f6;font-size:24px;">receipt</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">New Invoice</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.sales.receive_payment %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'sales:invoice-list' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(34,197,94,.15)'" onmouseout="this.style.background='rgba(34,197,94,.08)'">
+                            <span class="material-icons" style="color:#22c55e;font-size:24px;">payments</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Record Payment</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.finance.add_expense %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'finance:expense-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(239,68,68,.15)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">
+                            <span class="material-icons" style="color:#ef4444;font-size:24px;">money_off</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Add Expense</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.hr.add_employee %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'hr:employee-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(139,92,246,.15)'" onmouseout="this.style.background='rgba(139,92,246,.08)'">
+                            <span class="material-icons" style="color:#8b5cf6;font-size:24px;">person_add</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Add Employee</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.hr.add_leaverequest %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'hr:leave-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(245,158,11,.15)'" onmouseout="this.style.background='rgba(245,158,11,.08)'">
+                            <span class="material-icons" style="color:#f59e0b;font-size:24px;">event</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Apply Leave</span>
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% if perms.sales.view_salesorder and ready_to_invoice_count > 0 %}
+                    <div class="col-4 col-sm-3 col-md-2">
+                        <a href="{% url 'sales:ready-to-invoice' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none text-center" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(34,197,94,.15)'" onmouseout="this.style.background='rgba(34,197,94,.08)'">
+                            <span class="material-icons" style="color:#22c55e;font-size:24px;">receipt</span>
+                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">
+                                Ready to Invoice
+                                <span class="wms-badge badge-success ms-1" style="font-size:.6rem;">{{ ready_to_invoice_count }}</span>
+                            </span>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-{# ─── Two‑Column Layout ─────────────────────────────────── #}
-<div class="row g-4 mb-4">
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 7: CHARTS & LOW STOCK (Two‑column)              #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.inventory.view_stock_report or perms.sales.view_invoice %}
+<div class="row g-4" data-aos="fade-up" data-aos-delay="300">
 
-    {# ─── Left: Charts ───────────────────────────────────── #}
-    <div class="col-12 col-xl-7" data-aos="fade-up">
-        <!-- Stock Movement Chart -->
+    <div class="col-12 col-xl-7">
+        {% if perms.inventory.view_stock_report %}
         <div class="wms-card">
             <div class="wms-card-header">
-                <h6>Stock Movement — Last 7 Days</h6>
+                <h6>📊 Stock Movement — Last 7 Days</h6>
                 <a href="{% url 'reports:movements' %}" class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">View All</a>
             </div>
             <div class="wms-card-body position-relative" style="height: 220px;">
@@ -232,11 +487,12 @@
                 </div>
             </div>
         </div>
+        {% endif %}
 
-        <!-- Daily Sales Chart -->
+        {% if perms.sales.view_invoice %}
         <div class="wms-card mt-3">
             <div class="wms-card-header">
-                <h6>Daily Sales — Last 7 Days</h6>
+                <h6>📈 Daily Sales — Last 7 Days</h6>
                 <a href="{% url 'sales:invoice-list' %}" class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">View Invoices</a>
             </div>
             <div class="wms-card-body position-relative" style="height: 180px;">
@@ -248,153 +504,167 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
 
-    {# ─── Right Column ────────────────────────────────── #}
-    <div class="col-12 col-xl-5" data-aos="fade-up" data-aos-delay="100">
-        {# Low Stock Alerts #}
-        <div class="wms-card mb-4">
+    <div class="col-12 col-xl-5">
+        {% if perms.inventory.view_stock_report %}
+        <div class="wms-card h-100">
             <div class="wms-card-header">
                 <h6><span class="material-icons" style="font-size:16px;vertical-align:middle;color:#ef4444;margin-right:.25rem;">warning</span> Low Stock Alerts</h6>
                 <a href="{% url 'inventory:stock-list' %}?low_stock=1" class="btn-wms-secondary" style="font-size:.72rem;padding:.25rem .65rem;">View All</a>
             </div>
-            {% if low_stock_items %}
-            <div>
-                {% for stock in low_stock_items %}
-                <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border-subtle);">
-                    <div>
-                        <div style="font-size:.82rem;font-weight:600;color:var(--text-primary);">{{ stock.item.name|truncatechars:30 }}</div>
-                        <div style="font-size:.72rem;color:var(--text-muted);">{{ stock.warehouse.name }}</div>
-                    </div>
-                    <div class="text-end">
-                        <div style="font-size:.875rem;font-weight:800;color:#ef4444;">{{ stock.quantity }} {{ stock.item.unit.symbol }}</div>
-                        <div style="font-size:.68rem;color:var(--text-muted);">Min: {{ stock.item.minimum_stock }}</div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state" style="padding:1.5rem;">
-                <span class="material-icons empty-icon" style="color:#22c55e;font-size:2rem;opacity:1;">check_circle</span>
-                <p style="margin:0;font-size:.82rem;">All stock levels healthy</p>
-            </div>
-            {% endif %}
-        </div>
-
-        {# Quick Actions #}
-        <div class="wms-card">
-            <div class="wms-card-header"><h6>Quick Actions</h6></div>
             <div class="wms-card-body">
-                <div class="row g-2">
-                    {% if perms.inventory.receive_stock %}
-                    <div class="col-6">
-                        <a href="{% url 'inventory:stock-receive' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(34,197,94,.15)'" onmouseout="this.style.background='rgba(34,197,94,.08)'">
-                            <span class="material-icons" style="color:#22c55e;font-size:22px;">move_to_inbox</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Receive Stock</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.inventory.issue_stock %}
-                    <div class="col-6">
-                        <a href="{% url 'inventory:stock-issue' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(239,68,68,.15)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">
-                            <span class="material-icons" style="color:#ef4444;font-size:22px;">outbox</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Issue Stock</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.sales.add_invoice %}
-                    <div class="col-6">
-                        <a href="{% url 'sales:invoice-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(59,130,246,.15)'" onmouseout="this.style.background='rgba(59,130,246,.08)'">
-                            <span class="material-icons" style="color:#3b82f6;font-size:22px;">receipt</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">New Invoice</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.sales.receive_payment %}
-                    <div class="col-6">
-                        <a href="{% url 'sales:invoice-list' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(34,197,94,.15)'" onmouseout="this.style.background='rgba(34,197,94,.08)'">
-                            <span class="material-icons" style="color:#22c55e;font-size:22px;">payments</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Record Payment</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.finance.add_expense %}
-                    <div class="col-6">
-                        <a href="{% url 'finance:expense-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(239,68,68,.15)'" onmouseout="this.style.background='rgba(239,68,68,.08)'">
-                            <span class="material-icons" style="color:#ef4444;font-size:22px;">money_off</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Add Expense</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.hr.add_employee %}
-                    <div class="col-6">
-                        <a href="{% url 'hr:employee-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(139,92,246,.15)'" onmouseout="this.style.background='rgba(139,92,246,.08)'">
-                            <span class="material-icons" style="color:#8b5cf6;font-size:22px;">person_add</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Add Employee</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                    {% if perms.hr.add_leaverequest %}
-                    <div class="col-6">
-                        <a href="{% url 'hr:leave-create' %}" class="d-flex flex-column align-items-center gap-1 p-3 rounded-wms text-decoration-none" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);transition:var(--transition);" onmouseover="this.style.background='rgba(245,158,11,.15)'" onmouseout="this.style.background='rgba(245,158,11,.08)'">
-                            <span class="material-icons" style="color:#f59e0b;font-size:22px;">event</span>
-                            <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary);">Apply Leave</span>
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-{# ─── Finance Snapshot (visible to finance users) ───── #}
-{% if perms.finance.view_expense or perms.finance.view_account %}
-<div class="row g-3 mt-3" data-aos="fade-up">
-    <div class="col-12">
-        <div class="wms-card">
-            <div class="wms-card-header">
-                <h6>Finance Snapshot – {{ today|date:"F Y" }}</h6>
-                <a href="{% url 'reports:income-statement' %}" class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">
-                    View Full Income Statement
-                </a>
-            </div>
-            <div class="wms-card-body">
-                <div class="row g-3 text-center">
-                    <div class="col-6 col-md-3">
-                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Revenue</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#22c55e;">{{ currency_symbol }} {{ total_revenue|floatformat:0 }}</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Expenses</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#ef4444;">{{ currency_symbol }} {{ total_expenses|floatformat:0 }}</div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Net Profit</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:{% if net_profit >= 0 %}#22c55e{% else %}#ef4444{% endif %};">
-                            {{ currency_symbol }} {{ net_profit|floatformat:0 }}
+                {% if low_stock_items %}
+                <div>
+                    {% for stock in low_stock_items %}
+                    <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border-subtle);">
+                        <div>
+                            <div style="font-size:.82rem;font-weight:600;color:var(--text-primary);">{{ stock.item.name|truncatechars:30 }}</div>
+                            <div style="font-size:.72rem;color:var(--text-muted);">{{ stock.warehouse.name }}</div>
+                        </div>
+                        <div class="text-end">
+                            <div style="font-size:.875rem;font-weight:800;color:#ef4444;">{{ stock.quantity }} {{ stock.item.unit.symbol }}</div>
+                            <div style="font-size:.68rem;color:var(--text-muted);">Min: {{ stock.item.minimum_stock }}</div>
                         </div>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <div style="font-size:.68rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);">Cash in Hand</div>
-                        <div style="font-size:1.2rem;font-weight:800;color:#3b82f6;">{{ currency_symbol }} {{ cash_balance|floatformat:0 }}</div>
-                    </div>
+                    {% endfor %}
                 </div>
-                <div class="d-flex gap-2 mt-3 pt-3 border-top border-wms justify-content-center">
-                    <a href="{% url 'reports:income-statement' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Income Statement</a>
-                    <a href="{% url 'reports:cash-flow' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Cash Flow</a>
-                    <a href="{% url 'reports:balance-sheet' %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">Balance Sheet</a>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="color:#22c55e;font-size:2rem;opacity:1;">check_circle</span>
+                    <p style="margin:0;font-size:.82rem;">All stock levels healthy</p>
                 </div>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
     </div>
+
 </div>
 {% endif %}
 
-{# ─── Recent Movements Table ────────────────────────────── #}
-<div class="wms-card mt-4" data-aos="fade-up">
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 8: ROLE‑BASED CHARTS (Finance, HR, Procurement) #}
+{# ───────────────────────────────────────────────────────── #}
+<div class="row g-4 mt-3" data-aos="fade-up" data-aos-delay="350">
+
+    {# ─── Finance Charts ─────────────────────────────────── #}
+    {% if perms.finance.view_account or perms.finance.view_expense %}
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>💰 Expense Breakdown – This Month</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                {% if expense_labels %}
+                <canvas id="expenseChart"></canvas>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="font-size:2rem;opacity:0.6;">pie_chart</span>
+                    <p style="margin:0;font-size:.82rem;">No expenses recorded this month.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>📈 Revenue Trend – Last 7 Days</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                {% if revenue_trend %}
+                <canvas id="revenueTrendChart"></canvas>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="font-size:2rem;opacity:0.6;">trending_up</span>
+                    <p style="margin:0;font-size:.82rem;">No revenue data available.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ─── HR Charts ─────────────────────────────────────── #}
+    {% if perms.hr.view_employee or perms.hr.view_attendance %}
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>👥 Leave Distribution – Today</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                {% if leave_labels %}
+                <canvas id="leaveChart"></canvas>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="font-size:2rem;opacity:0.6;">event</span>
+                    <p style="margin:0;font-size:.82rem;">No one on leave today.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>⏰ Attendance Status – Today</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                <canvas id="attendanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# ─── Procurement Charts ───────────────────────────── #}
+    {% if perms.procurement.view_purchaseorder or perms.procurement.view_goodsreceipt %}
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>📦 Purchase Orders – by Status</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                {% if po_labels %}
+                <canvas id="poStatusChart"></canvas>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="font-size:2rem;opacity:0.6;">receipt_long</span>
+                    <p style="margin:0;font-size:.82rem;">No purchase orders found.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-md-6">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>📥 Goods Received – Last 7 Days</h6>
+            </div>
+            <div class="wms-card-body position-relative" style="height: 200px;">
+                {% if grn_trend %}
+                <canvas id="grnTrendChart"></canvas>
+                {% else %}
+                <div class="empty-state" style="padding:1.5rem;">
+                    <span class="material-icons empty-icon" style="font-size:2rem;opacity:0.6;">move_to_inbox</span>
+                    <p style="margin:0;font-size:.82rem;">No goods received recently.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+{# ───────────────────────────────────────────────────────── #}
+{# SECTION 9: RECENT MOVEMENTS (if user has permission)    #}
+{# ───────────────────────────────────────────────────────── #}
+{% if perms.inventory.view_stockmovement %}
+<div class="wms-card mt-4" data-aos="fade-up" data-aos-delay="400">
     <div class="wms-card-header">
-        <h6>Recent Stock Movements</h6>
+        <h6>🔄 Recent Stock Movements</h6>
         <a href="{% url 'inventory:movement-list' %}" class="btn-wms-secondary" style="font-size:.75rem;padding:.3rem .75rem;">View All</a>
     </div>
     <div class="table-responsive">
@@ -426,7 +696,7 @@
                 {% empty %}
                 <tr>
                     <td colspan="6">
-                        <div class="empty-state">
+                        <div class="empty-state" style="padding:1.5rem;">
                             <span class="material-icons empty-icon">swap_horiz</span>
                             <h6>No movements yet</h6>
                             <p>Stock movements will appear here</p>
@@ -438,6 +708,7 @@
         </table>
     </div>
 </div>
+{% endif %}
 
 {% endblock %}
 
@@ -446,29 +717,23 @@
 // ── Stock Movement Chart ──────────────────────────────
 (function() {
     const ctx = document.getElementById('movementChart');
-    const emptyEl = document.getElementById('movementChartEmpty');
     if (!ctx) return;
 
     const chartIn  = {{ movement_chart_in|default:"[0,0,0,0,0,0,0]"|safe }};
     const chartOut = {{ movement_chart_out|default:"[0,0,0,0,0,0,0]"|safe }};
+    const labels   = {{ chart_labels|default:"[]"|safe }};
 
     const hasData = chartIn.some(v => v > 0) || chartOut.some(v => v > 0);
     if (!hasData) {
         ctx.style.display = 'none';
-        emptyEl.style.display = 'block';
+        const empty = document.getElementById('movementChartEmpty');
+        if (empty) empty.style.display = 'block';
         return;
     }
 
     const isDark = document.documentElement.classList.contains('dark-mode');
     const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
     const textColor = isDark ? '#64748b' : '#94a3b8';
-
-    const labels = [];
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-    }
 
     new Chart(ctx, {
         type: 'bar',
@@ -498,27 +763,22 @@
 // ── Sales Chart ────────────────────────────────────────
 (function() {
     const ctx = document.getElementById('salesChart');
-    const emptyEl = document.getElementById('salesChartEmpty');
     if (!ctx) return;
 
     const salesData = {{ sales_chart|default:"[0,0,0,0,0,0,0]"|safe }};
+    const labels = {{ chart_labels|default:"[]"|safe }};
+
     const hasData = salesData.some(v => v > 0);
     if (!hasData) {
         ctx.style.display = 'none';
-        emptyEl.style.display = 'block';
+        const empty = document.getElementById('salesChartEmpty');
+        if (empty) empty.style.display = 'block';
         return;
     }
 
     const isDark = document.documentElement.classList.contains('dark-mode');
     const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
     const textColor = isDark ? '#64748b' : '#94a3b8';
-
-    const labels = [];
-    for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        labels.push(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-    }
 
     new Chart(ctx, {
         type: 'line',
@@ -544,6 +804,215 @@
             scales: {
                 x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
                 y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 5 }, beginAtZero: true }
+            }
+        }
+    });
+})();
+
+// ── Expense Breakdown Chart ──────────────────────────
+(function() {
+    const ctx = document.getElementById('expenseChart');
+    if (!ctx) return;
+    const labels = {{ expense_labels|safe }};
+    const values = {{ expense_values|safe }};
+    if (!labels.length) return;
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: textColor, font: { size: 10 }, boxWidth: 10, padding: 8 }
+                }
+            }
+        }
+    });
+})();
+
+// ── Revenue Trend Chart ──────────────────────────────
+(function() {
+    const ctx = document.getElementById('revenueTrendChart');
+    if (!ctx) return;
+    const data = {{ revenue_trend|safe }};
+    if (!data.length) return;
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const labels = {{ chart_labels|safe }};
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue',
+                data: data,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59,130,246,.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#3b82f6',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true }
+            }
+        }
+    });
+})();
+
+// ── Leave Distribution Chart ─────────────────────────
+(function() {
+    const ctx = document.getElementById('leaveChart');
+    if (!ctx) return;
+    const labels = {{ leave_labels|safe }};
+    const values = {{ leave_values|safe }};
+    if (!labels.length) return;
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: values,
+                backgroundColor: ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#8b5cf6'],
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: textColor, font: { size: 10 }, boxWidth: 10, padding: 8 }
+                }
+            }
+        }
+    });
+})();
+
+// ── Attendance Chart ──────────────────────────────────
+(function() {
+    const ctx = document.getElementById('attendanceChart');
+    if (!ctx) return;
+    const clocked = {{ attendance_clocked|default:0 }};
+    const onLeave = {{ attendance_on_leave|default:0 }};
+    const absent = {{ attendance_absent|default:0 }};
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Clocked In', 'On Leave', 'Absent'],
+            datasets: [{
+                data: [clocked, onLeave, absent],
+                backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+                borderWidth: 2,
+                borderColor: isDark ? '#1e293b' : '#fff',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: textColor, font: { size: 10 }, boxWidth: 10, padding: 8 }
+                }
+            }
+        }
+    });
+})();
+
+// ── PO Status Chart ───────────────────────────────────
+(function() {
+    const ctx = document.getElementById('poStatusChart');
+    if (!ctx) return;
+    const labels = {{ po_labels|safe }};
+    const values = {{ po_values|safe }};
+    if (!labels.length) return;
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Orders',
+                data: values,
+                backgroundColor: ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6'],
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+                y: { grid: { color: isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)' }, ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true }
+            }
+        }
+    });
+})();
+
+// ── GRN Trend Chart ───────────────────────────────────
+(function() {
+    const ctx = document.getElementById('grnTrendChart');
+    if (!ctx) return;
+    const data = {{ grn_trend|safe }};
+    if (!data.length) return;
+    const isDark = document.documentElement.classList.contains('dark-mode');
+    const gridColor = isDark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const labels = {{ chart_labels|safe }};
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Received',
+                data: data,
+                borderColor: '#8b5cf6',
+                backgroundColor: 'rgba(139,92,246,.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#8b5cf6',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: textColor, font: { size: 10 } } },
+                y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 10 } }, beginAtZero: true }
             }
         }
     });
