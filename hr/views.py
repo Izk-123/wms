@@ -325,7 +325,7 @@ class AttendanceClockView(LoginRequiredMixin, View):
         except (AttributeError, ValidationError) as e:
             messages.error(request, str(e))
 
-        return redirect('hr:attendance-dashboard')
+        return redirect('hr:attendance-list')
     
 # ─── Payroll Views ────────────────────────────────────────────
 

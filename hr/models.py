@@ -249,6 +249,7 @@ class LeaveRequest(models.Model):
     rejection_reason = models.TextField(blank=True)
     submitted_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
+    reference = models.CharField(max_length=50, unique=True, blank=True, null=True)
 
     class Meta:
         ordering = ['-submitted_at']
@@ -259,6 +260,12 @@ class LeaveRequest(models.Model):
     def get_absolute_url(self):
         from django.urls import reverse
         return reverse('hr:leave-detail', kwargs={'pk': self.pk})
+    
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            # Generate reference like "LR-000001"
+            self.reference = generate_next_number("LEAVE_PREFIX", LeaveRequest, padding=6)
+        super().save(*args, **kwargs)
 
 
 class Attendance(models.Model):

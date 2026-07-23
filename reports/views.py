@@ -15,7 +15,7 @@ from operations.models import Project, MaterialRequest
 from assets.models import Asset
 from accounts.models import User
 
-# ─── NEW IMPORTS ──────────────────────────────────────────
+# ─── Imports for all modules ──────────────────────────────
 from sales.models import Invoice, Payment, SalesOrder
 from finance.models import Account, JournalLine, Expense
 from hr.models import Employee, LeaveRequest, Attendance
@@ -23,229 +23,294 @@ from company_settings.services import get_setting
 
 
 # ─────────────────────────────────────────
-# HELPERS
+# DASHBOARD VIEW
 # ─────────────────────────────────────────
-
-def get_dashboard_stats():
-    """Central function — used by dashboard and HTMX partial."""
-    today = timezone.now().date()
-    thirty_days_ago = today - timedelta(days=30)
-
-    # ── Chart data — last 7 days ─────────────────────
-    from django.db.models.functions import TruncDate
-
-    # Stock movement chart
-    chart_in = []
-    chart_out = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        day_in = StockMovement.objects.filter(
-            movement_type='IN', created_at__date=day
-        ).count()
-        day_out = StockMovement.objects.filter(
-            movement_type='OUT', created_at__date=day
-        ).count()
-        chart_in.append(day_in)
-        chart_out.append(day_out)
-
-    # Sales chart (daily sales amount)
-    sales_chart = []
-    for i in range(6, -1, -1):
-        day = today - timedelta(days=i)
-        day_sales = Payment.objects.filter(
-            payment_date__date=day
-        ).aggregate(total=Sum('amount'))['total'] or 0
-        sales_chart.append(float(day_sales))
-
-    # ── Inventory ──────────────────────────────────────
-    total_items = Item.objects.filter(is_active=True).count()
-    total_warehouses = Warehouse.objects.filter(is_active=True).count()
-    low_stock_items = Stock.objects.filter(
-        quantity__lte=F('item__minimum_stock'),
-        item__minimum_stock__gt=0
-    ).select_related('item', 'warehouse')
-    low_stock_count = low_stock_items.count()
-    stock_value = Stock.objects.aggregate(
-        total=Sum(F('quantity') * F('item__unit_cost'))
-    )['total'] or 0
-
-    # ── Movements Today ────────────────────────────────
-    received_today = StockMovement.objects.filter(
-        movement_type='IN', created_at__date=today
-    ).count()
-    issued_today = StockMovement.objects.filter(
-        movement_type='OUT', created_at__date=today
-    ).count()
-
-    # ── Procurement ────────────────────────────────────
-    pending_orders = PurchaseOrder.objects.filter(
-        status__in=('draft', 'sent')
-    ).count()
-    pending_pr_approvals = MaterialRequest.objects.filter(
-        status='submitted'
-    ).count()
-
-    # ── Projects ──────────────────────────────────────
-    active_projects = Project.objects.filter(status='active').count()
-
-    # ── Assets ────────────────────────────────────────
-    assets_assigned = Asset.objects.filter(status='assigned').count()
-    assets_due_maintenance = Asset.objects.filter(
-        next_maintenance_date__lte=today + timedelta(days=7),
-        next_maintenance_date__isnull=False,
-        status__in=('available', 'assigned')
-    ).count()
-
-    # ── Sales ──────────────────────────────────────────
-    today_sales = Payment.objects.filter(
-        payment_date__date=today
-    ).aggregate(total=Sum('amount'))['total'] or 0
-    outstanding_invoices = Invoice.objects.filter(
-        status__in=('sent', 'partially_paid')
-    ).count()
-    pending_sales_orders = SalesOrder.objects.filter(
-        status__in=('draft', 'pending_approval')
-    ).count()
-
-    # ── Finance (monthly summary) ──────────────────────
-    month_start = today.replace(day=1)
-    total_revenue = Payment.objects.filter(
-        payment_date__date__gte=month_start,
-        payment_date__date__lte=today
-    ).aggregate(total=Sum('amount'))['total'] or 0
-    total_expenses = Expense.objects.filter(
-        status='paid',
-        created_at__date__gte=month_start,
-        created_at__date__lte=today
-    ).aggregate(total=Sum('amount'))['total'] or 0
-    net_profit = total_revenue - total_expenses
-
-    # Cash & Bank balances (from journal lines)
-    cash_code = get_setting('PAYROLL_CASH_ACCOUNT', '1000')
-    bank_code = '1010'
-    cash_balance = JournalLine.objects.filter(
-        account__code=cash_code
-    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0
-    bank_balance = JournalLine.objects.filter(
-        account__code=bank_code
-    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0
-
-    # ── HR ──────────────────────────────────────────────
-    total_employees = Employee.objects.filter(is_active=True).count()
-    pending_leave_requests = LeaveRequest.objects.filter(status='pending').count()
-    employees_on_leave_today = LeaveRequest.objects.filter(
-        status='approved',
-        start_date__lte=today,
-        end_date__gte=today
-    ).count()
-    clocked_in_today = Attendance.objects.filter(date=today, clock_in__isnull=False).count()
-
-    # ── Recent Movements ────────────────────────────────
-    recent_movements = StockMovement.objects.select_related(
-        'item', 'warehouse', 'created_by'
-    ).order_by('-created_at')[:8]
-
-    return {
-        # Inventory
-        'total_items': total_items,
-        'total_warehouses': total_warehouses,
-        'low_stock_count': low_stock_count,
-        'low_stock_items': low_stock_items[:5],
-        'stock_value': stock_value,
-        'received_today': received_today,
-        'issued_today': issued_today,
-        # Procurement
-        'pending_orders': pending_orders,
-        'pending_pr_approvals': pending_pr_approvals,
-        # Projects
-        'active_projects': active_projects,
-        # Assets
-        'assets_assigned': assets_assigned,
-        'assets_due_maintenance': assets_due_maintenance,
-        # Sales
-        'today_sales': today_sales,
-        'outstanding_invoices': outstanding_invoices,
-        'pending_sales_orders': pending_sales_orders,
-        # Finance
-        'total_revenue': total_revenue,
-        'total_expenses': total_expenses,
-        'net_profit': net_profit,
-        'cash_balance': cash_balance,
-        'bank_balance': bank_balance,
-        # HR
-        'total_employees': total_employees,
-        'pending_leave_requests': pending_leave_requests,
-        'employees_on_leave_today': employees_on_leave_today,
-        'clocked_in_today': clocked_in_today,
-        # Charts
-        'movement_chart_in': chart_in,
-        'movement_chart_out': chart_out,
-        'sales_chart': sales_chart,
-        # Recent
-        'recent_movements': recent_movements,
-        'today': today,
-    }
-
-
-def get_finance_stats(date_from=None, date_to=None):
-    """
-    Calculate finance statistics for a given period.
-    Defaults to current month if no dates provided.
-    """
-    today = timezone.now().date()
-    if not date_from:
-        date_from = today.replace(day=1)
-    if not date_to:
-        date_to = today
-
-    total_revenue = Payment.objects.filter(
-        payment_date__date__gte=date_from,
-        payment_date__date__lte=date_to
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    total_expenses = Expense.objects.filter(
-        status='paid',
-        created_at__date__gte=date_from,
-        created_at__date__lte=date_to
-    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-
-    net_profit = total_revenue - total_expenses
-
-    cash_code = get_setting('PAYROLL_CASH_ACCOUNT', '1000')
-    bank_code = '1010'
-    cash_balance = JournalLine.objects.filter(
-        account__code=cash_code
-    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or Decimal('0.00')
-    bank_balance = JournalLine.objects.filter(
-        account__code=bank_code
-    ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or Decimal('0.00')
-
-    return {
-        'total_revenue': total_revenue,
-        'total_expenses': total_expenses,
-        'net_profit': net_profit,
-        'cash_balance': cash_balance,
-        'bank_balance': bank_balance,
-        'period_start': date_from,
-        'period_end': date_to,
-    }
-
-
-# ─── DASHBOARD VIEWS ─────────────────────────────────────
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx.update(get_dashboard_stats())
+        user = self.request.user
+        today = timezone.now().date()
+
+        # ─── Base Context (always present) ──────────────────
+        ctx.update({
+            'today': today,
+            'user_role': user.role.name if user.role else None,
+            'currency_symbol': get_setting('CURRENCY_SYMBOL', 'MK'),
+        })
+
+        # ─── Inventory Stats ────────────────────────────────
+        if user.has_perm('inventory.view_stock_report') or user.has_perm('inventory.view_item'):
+            ctx.update(self._get_inventory_stats(today))
+
+        # ─── Sales Stats ────────────────────────────────────
+        if user.has_perm('sales.view_invoice') or user.has_perm('sales.view_salesorder'):
+            ctx.update(self._get_sales_stats(today))
+
+        # ─── Finance Stats ──────────────────────────────────
+        if user.has_perm('finance.view_account') or user.has_perm('finance.view_expense'):
+            ctx.update(self._get_finance_stats(today))
+
+        # ─── HR Stats ──────────────────────────────────────
+        if user.has_perm('hr.view_employee') or user.has_perm('hr.view_attendance'):
+            ctx.update(self._get_hr_stats(today))
+
+        # ─── Procurement Stats ──────────────────────────────
+        if user.has_perm('procurement.view_purchaseorder') or user.has_perm('procurement.view_purchaserequest'):
+            ctx.update(self._get_procurement_stats(today))
+
+        # ─── Operations Stats ────────────────────────────────
+        if user.has_perm('operations.view_project') or user.has_perm('operations.view_materialrequest'):
+            ctx.update(self._get_operations_stats(today))
+
+        # ─── Assets Stats ────────────────────────────────────
+        if user.has_perm('assets.view_asset'):
+            ctx.update(self._get_assets_stats(today))
+
+        # ─── Recent Movements ────────────────────────────────
+        if user.has_perm('inventory.view_stockmovement'):
+            ctx['recent_movements'] = StockMovement.objects.select_related(
+                'item', 'warehouse', 'created_by'
+            ).order_by('-created_at')[:8]
+
+        # ─── Chart Data ──────────────────────────────────────
+        ctx.update(self._get_chart_data(today))
+
+        # ─── Role‑specific Charts ────────────────────────────
+        if user.has_perm('finance.view_account') or user.has_perm('finance.view_expense'):
+            ctx.update(self._get_finance_chart_data(today))
+
+        if user.has_perm('hr.view_employee') or user.has_perm('hr.view_attendance'):
+            ctx.update(self._get_hr_chart_data(today))
+
+        if user.has_perm('procurement.view_purchaseorder') or user.has_perm('procurement.view_goodsreceipt'):
+            ctx.update(self._get_procurement_chart_data(today))
+
         return ctx
+
+    # ─── Helper Methods ──────────────────────────────────────
+
+    def _get_inventory_stats(self, today):
+        return {
+            'total_items': Item.objects.filter(is_active=True).count(),
+            'total_warehouses': Warehouse.objects.filter(is_active=True).count(),
+            'low_stock_items': Stock.objects.filter(
+                quantity__lte=F('item__minimum_stock'),
+                item__minimum_stock__gt=0
+            ).select_related('item', 'warehouse')[:5],
+            'low_stock_count': Stock.objects.filter(
+                quantity__lte=F('item__minimum_stock'),
+                item__minimum_stock__gt=0
+            ).count(),
+            'stock_value': Stock.objects.aggregate(
+                total=Sum(F('quantity') * F('item__unit_cost'))
+            )['total'] or 0,
+            'received_today': StockMovement.objects.filter(
+                movement_type='IN', created_at__date=today
+            ).count(),
+            'issued_today': StockMovement.objects.filter(
+                movement_type='OUT', created_at__date=today
+            ).count(),
+        }
+
+    def _get_sales_stats(self, today):
+        month_start = today.replace(day=1)
+        return {
+            'today_sales': Payment.objects.filter(
+                payment_date__date=today
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'monthly_sales': Payment.objects.filter(
+                payment_date__date__gte=month_start,
+                payment_date__date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'outstanding_invoices': Invoice.objects.filter(
+                status__in=('sent', 'partially_paid')
+            ).count(),
+            'pending_sales_orders': SalesOrder.objects.filter(
+                status__in=('draft', 'pending_approval')
+            ).count(),
+            'ready_to_invoice_count': SalesOrder.objects.filter(
+                status='approved',
+                invoices__isnull=True
+            ).count(),
+        }
+
+    def _get_finance_stats(self, today):
+        month_start = today.replace(day=1)
+        cash_code = get_setting('PAYROLL_CASH_ACCOUNT', '1000')
+        return {
+            'total_revenue': Payment.objects.filter(
+                payment_date__date__gte=month_start,
+                payment_date__date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'total_expenses': Expense.objects.filter(
+                status='paid',
+                created_at__date__gte=month_start,
+                created_at__date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'net_profit': Payment.objects.filter(
+                payment_date__date__gte=month_start,
+                payment_date__date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or 0 -
+            Expense.objects.filter(
+                status='paid',
+                created_at__date__gte=month_start,
+                created_at__date__lte=today
+            ).aggregate(total=Sum('amount'))['total'] or 0,
+            'cash_balance': JournalLine.objects.filter(
+                account__code=cash_code
+            ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0,
+            'pending_expenses': Expense.objects.filter(
+                status__in=('pending_approval', 'approved')
+            ).count(),
+        }
+
+    def _get_hr_stats(self, today):
+        return {
+            'total_employees': Employee.objects.filter(is_active=True).count(),
+            'pending_leave_requests': LeaveRequest.objects.filter(status='pending').count(),
+            'employees_on_leave_today': LeaveRequest.objects.filter(
+                status='approved',
+                start_date__lte=today,
+                end_date__gte=today
+            ).count(),
+            'clocked_in_today': Attendance.objects.filter(date=today, clock_in__isnull=False).count(),
+        }
+
+    def _get_procurement_stats(self, today):
+        return {
+            'pending_orders': PurchaseOrder.objects.filter(
+                status__in=('draft', 'sent')
+            ).count(),
+            'pending_pr_approvals': MaterialRequest.objects.filter(
+                status='submitted'
+            ).count(),
+        }
+
+    def _get_operations_stats(self, today):
+        return {
+            'active_projects': Project.objects.filter(status='active').count(),
+        }
+
+    def _get_assets_stats(self, today):
+        return {
+            'assets_assigned': Asset.objects.filter(status='assigned').count(),
+            'assets_due_maintenance': Asset.objects.filter(
+                next_maintenance_date__lte=today + timedelta(days=7),
+                next_maintenance_date__isnull=False,
+                status__in=('available', 'assigned')
+            ).count(),
+        }
+
+    def _get_chart_data(self, today):
+        # Stock movement chart
+        chart_in = []
+        chart_out = []
+        sales_chart = []
+        labels = []
+
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            labels.append(day.strftime('%d %b'))
+            chart_in.append(StockMovement.objects.filter(
+                movement_type='IN', created_at__date=day
+            ).count())
+            chart_out.append(StockMovement.objects.filter(
+                movement_type='OUT', created_at__date=day
+            ).count())
+            sales_chart.append(float(Payment.objects.filter(
+                payment_date__date=day
+            ).aggregate(total=Sum('amount'))['total'] or 0))
+
+        return {
+            'chart_labels': labels,
+            'movement_chart_in': chart_in,
+            'movement_chart_out': chart_out,
+            'sales_chart': sales_chart,
+        }
+
+    def _get_finance_chart_data(self, today):
+        month_start = today.replace(day=1)
+        # Expense breakdown (top 5 categories)
+        expenses_by_category = Expense.objects.filter(
+            status='paid',
+            created_at__date__gte=month_start,
+            created_at__date__lte=today
+        ).values('category').annotate(total=Sum('amount')).order_by('-total')[:5]
+        expense_labels = [e['category'].title() for e in expenses_by_category]
+        expense_values = [float(e['total']) for e in expenses_by_category]
+
+        # Revenue trend (last 7 days)
+        revenue_trend = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            revenue_trend.append(float(Payment.objects.filter(
+                payment_date__date=day
+            ).aggregate(total=Sum('amount'))['total'] or 0))
+
+        return {
+            'expense_labels': expense_labels,
+            'expense_values': expense_values,
+            'revenue_trend': revenue_trend,
+        }
+
+    def _get_hr_chart_data(self, today):
+        # Leave distribution (by leave type)
+        leave_by_type = LeaveRequest.objects.filter(
+            status='approved',
+            start_date__lte=today,
+            end_date__gte=today
+        ).values('leave_type__name').annotate(count=Count('id'))
+        leave_labels = [l['leave_type__name'] for l in leave_by_type]
+        leave_values = [l['count'] for l in leave_by_type]
+
+        # Attendance status today
+        total_emp = Employee.objects.filter(is_active=True).count()
+        clocked_in = Attendance.objects.filter(date=today, clock_in__isnull=False).count()
+        on_leave = LeaveRequest.objects.filter(
+            status='approved',
+            start_date__lte=today,
+            end_date__gte=today
+        ).count()
+        absent = total_emp - clocked_in - on_leave
+
+        return {
+            'leave_labels': leave_labels,
+            'leave_values': leave_values,
+            'attendance_clocked': clocked_in,
+            'attendance_on_leave': on_leave,
+            'attendance_absent': absent,
+        }
+
+    def _get_procurement_chart_data(self, today):
+        # PO status breakdown
+        po_status = PurchaseOrder.objects.values('status').annotate(count=Count('id'))
+        po_labels = [s['status'].title() for s in po_status]
+        po_values = [s['count'] for s in po_status]
+
+        # Received goods over last 7 days
+        grn_trend = []
+        for i in range(6, -1, -1):
+            day = today - timedelta(days=i)
+            grn_trend.append(GoodsReceipt.objects.filter(
+                received_at__date=day
+            ).count())
+
+        return {
+            'po_labels': po_labels,
+            'po_values': po_values,
+            'grn_trend': grn_trend,
+        }
 
 
 class DashboardStatsPartialView(LoginRequiredMixin, View):
     """HTMX endpoint — refreshes stat cards every 30s."""
     def get(self, request):
-        context = get_dashboard_stats()
+        # Reuse the dashboard logic but return only the stats partial
+        view = DashboardView()
+        context = view.get_context_data()
         return render(request, 'reports/partials/dashboard_stats.html', context)
 
 
@@ -475,7 +540,7 @@ class BalanceSheetView(LoginRequiredMixin, TemplateView):
 
         total_assets = cash + bank
         total_liabilities = paye_liability + pension_liability
-        equity = total_assets - total_liabilities  # simplified
+        equity = total_assets - total_liabilities
 
         ctx.update({
             'cash': cash,
@@ -667,7 +732,6 @@ class ExportInventoryPDFView(LoginRequiredMixin, View):
             textColor=colors.HexColor('#1E293B'),
             spaceAfter=6,
         )
-        # Use company name from settings if available, but we don't have it here directly
         elements.append(
             Paragraph("Warehouse Management System", title_style)
         )
@@ -781,9 +845,10 @@ class GlobalSearchView(LoginRequiredMixin, View):
             request=request
         )
         return HttpResponse(html)
-    
+
+
 # ─────────────────────────────────────────
-# FINANCE REPORT EXPORTS
+# FINANCE REPORT EXPORTS (EXCEL & PDF)
 # ─────────────────────────────────────────
 
 class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
@@ -792,7 +857,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from company_settings.models import Company
 
-        # Get date range from request
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         today = timezone.now().date()
@@ -805,7 +869,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
         else:
             date_to = today
 
-        # Get data
         income = Payment.objects.filter(
             payment_date__date__gte=date_from,
             payment_date__date__lte=date_to
@@ -818,7 +881,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
         total_expenses = sum(e['total'] for e in expenses) if expenses else Decimal('0.00')
         net_income = income - total_expenses
 
-        # Get company name and currency
         company = Company.objects.first()
         company_name = company.name if company else "J&N WMS"
         currency = company.currency_symbol if company else "MWK"
@@ -827,7 +889,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
         ws = wb.active
         ws.title = "Income Statement"
 
-        # Styles
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")
         title_font = Font(bold=True, size=14)
@@ -837,17 +898,15 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
             top=Side(style='thin'), bottom=Side(style='thin')
         )
 
-        # Title
         ws.merge_cells('A1:B1')
         ws['A1'] = company_name
         ws['A1'].font = title_font
         ws.merge_cells('A2:B2')
-        ws['A2'] = f"Income Statement"
+        ws['A2'] = "Income Statement"
         ws.merge_cells('A3:B3')
         ws['A3'] = f"{date_from.strftime('%d %b %Y')} - {date_to.strftime('%d %b %Y')}"
         ws['A3'].font = Font(italic=True)
 
-        # Headers
         headers = ['Category', 'Amount']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=5, column=col, value=header)
@@ -856,7 +915,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
             cell.alignment = Alignment(horizontal='center')
             cell.border = border
 
-        # Data
         row = 6
         ws.cell(row=row, column=1, value="Revenue").font = bold_font
         ws.cell(row=row, column=2, value=income).number_format = '#,##0.00'
@@ -882,7 +940,6 @@ class ExportIncomeStatementExcelView(LoginRequiredMixin, View):
         else:
             net_cell.font = Font(bold=True, color="EF4444")
 
-        # Adjust column widths
         ws.column_dimensions['A'].width = 30
         ws.column_dimensions['B'].width = 20
 
@@ -905,7 +962,6 @@ class ExportIncomeStatementPDFView(LoginRequiredMixin, View):
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from company_settings.models import Company
 
-        # Get data (same as above)
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         today = timezone.now().date()
@@ -944,17 +1000,15 @@ class ExportIncomeStatementPDFView(LoginRequiredMixin, View):
         styles = getSampleStyleSheet()
         elements = []
 
-        # Title
         title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
                                      fontSize=16, textColor=colors.HexColor('#1E293B'),
                                      spaceAfter=6)
         elements.append(Paragraph(company_name, title_style))
-        elements.append(Paragraph(f"Income Statement", styles['Heading2']))
+        elements.append(Paragraph("Income Statement", styles['Heading2']))
         elements.append(Paragraph(f"{date_from.strftime('%d %b %Y')} - {date_to.strftime('%d %b %Y')}",
                                   styles['Normal']))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Table
         data = [['Category', f'Amount ({currency})']]
         data.append(['Revenue', f"{income:,.2f}"])
         data.append(['', ''])
@@ -982,17 +1036,16 @@ class ExportIncomeStatementPDFView(LoginRequiredMixin, View):
         return response
 
 
-# ─── Similarly for Cash Flow ─────────────────────────────
-
 class ExportCashFlowExcelView(LoginRequiredMixin, View):
     def get(self, request):
         import openpyxl
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
         from company_settings.models import Company
 
+        today = timezone.now().date()
         date_from = request.GET.get('date_from', str(today.replace(day=1)))
         date_to = request.GET.get('date_to', str(today))
-        # For simplicity, reuse logic from CashFlowView
+
         cash_in = Payment.objects.filter(
             payment_date__date__gte=date_from,
             payment_date__date__lte=date_to,
@@ -1024,7 +1077,7 @@ class ExportCashFlowExcelView(LoginRequiredMixin, View):
         ws['A1'] = company.name if company else "J&N WMS"
         ws['A1'].font = title_font
         ws.merge_cells('A2:B2')
-        ws['A2'] = f"Cash Flow"
+        ws['A2'] = "Cash Flow"
         ws.merge_cells('A3:B3')
         ws['A3'] = f"{date_from} - {date_to}"
         ws['A3'].font = Font(italic=True)
@@ -1077,8 +1130,10 @@ class ExportCashFlowPDFView(LoginRequiredMixin, View):
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from company_settings.models import Company
 
+        today = timezone.now().date()
         date_from = request.GET.get('date_from', str(today.replace(day=1)))
         date_to = request.GET.get('date_to', str(today))
+
         cash_in = Payment.objects.filter(
             payment_date__date__gte=date_from,
             payment_date__date__lte=date_to,
@@ -1136,8 +1191,6 @@ class ExportCashFlowPDFView(LoginRequiredMixin, View):
         return response
 
 
-# ─── Balance Sheet Exports ───────────────────────────────
-
 class ExportBalanceSheetExcelView(LoginRequiredMixin, View):
     def get(self, request):
         import openpyxl
@@ -1145,7 +1198,6 @@ class ExportBalanceSheetExcelView(LoginRequiredMixin, View):
         from company_settings.models import Company
         from company_settings.services import get_setting
 
-        # Reuse balance sheet logic from BalanceSheetView
         cash_code = get_setting('PAYROLL_CASH_ACCOUNT', '1000')
         bank_code = '1010'
         paye_code = '2005'
@@ -1186,7 +1238,6 @@ class ExportBalanceSheetExcelView(LoginRequiredMixin, View):
         ws.merge_cells('A2:B2')
         ws['A2'] = "Balance Sheet"
 
-        # Assets
         ws.cell(row=4, column=1, value="Assets").font = bold_font
         ws.cell(row=5, column=1, value="Cash")
         ws.cell(row=5, column=2, value=cash).number_format = '#,##0.00'
@@ -1198,7 +1249,6 @@ class ExportBalanceSheetExcelView(LoginRequiredMixin, View):
         ws.cell(row=7, column=2, value=total_assets).number_format = '#,##0.00'
         ws.cell(row=7, column=2).alignment = Alignment(horizontal='right')
 
-        # Liabilities & Equity
         ws.cell(row=9, column=1, value="Liabilities").font = bold_font
         ws.cell(row=10, column=1, value="PAYE Payable")
         ws.cell(row=10, column=2, value=paye_liability).number_format = '#,##0.00'
@@ -1236,7 +1286,6 @@ class ExportBalanceSheetPDFView(LoginRequiredMixin, View):
         from company_settings.models import Company
         from company_settings.services import get_setting
 
-        # Same logic as Excel version
         cash_code = get_setting('PAYROLL_CASH_ACCOUNT', '1000')
         bank_code = '1010'
         paye_code = '2005'
@@ -1278,7 +1327,6 @@ class ExportBalanceSheetPDFView(LoginRequiredMixin, View):
         elements.append(Paragraph("Balance Sheet", styles['Heading2']))
         elements.append(Spacer(1, 0.5*cm))
 
-        # Assets table
         data1 = [['Assets', f'Amount ({currency})']]
         data1.append(['Cash', f"{cash:,.2f}"])
         data1.append(['Bank', f"{bank:,.2f}"])
@@ -1297,7 +1345,6 @@ class ExportBalanceSheetPDFView(LoginRequiredMixin, View):
         elements.append(table1)
         elements.append(Spacer(1, 0.5*cm))
 
-        # Liabilities & Equity table
         data2 = [['Liabilities & Equity', f'Amount ({currency})']]
         data2.append(['PAYE Payable', f"{paye_liability:,.2f}"])
         data2.append(['Pension Payable', f"{pension_liability:,.2f}"])
