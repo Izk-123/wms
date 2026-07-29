@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+{% block title %}Warehouses{% endblock %}
+{% block page_title %}Warehouses{% endblock %}
+
+{% block content %}
+
+{% url 'inventory:warehouse-create' as add_warehouse_url %}
+{% include 'inventory/_card_header.html' with page_title="Warehouses" page_subtitle="Manage storage locations" add_url=add_warehouse_url add_label="Add Warehouse" %}
+
+<!-- Search -->
+<div class="wms-card mb-3">
+    <div class="wms-card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-6">
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search by name or location..."
+                       hx-get="{% url 'inventory:warehouse-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#warehouse-table">
+            </div>
+            <div class="col-12 col-md-2">
+                <a href="{% url 'inventory:warehouse-list' %}" class="btn-wms-secondary w-100 text-center">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="wms-card" id="warehouse-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Location</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for warehouse in warehouses %}
+                <tr>
+                    <td class="fw-semibold">
+                        <a href="{% url 'inventory:warehouse-detail' warehouse.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ warehouse.name }}
+                        </a>
+                    </td>
+                    <td>{{ warehouse.location|default:"—" }}</td>
+                    <td>{{ warehouse.description|truncatechars:50|default:"—" }}</td>
+                    <td>
+                        {% if warehouse.is_active %}
+                        <span class="wms-badge badge-success">Active</span>
+                        {% else %}
+                        <span class="wms-badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'inventory:warehouse-detail' warehouse.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            <a href="{% url 'inventory:warehouse-update' warehouse.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">warehouse</span>
+                            <h6>No warehouses found</h6>
+                            <p><a href="{% url 'inventory:warehouse-create' %}" class="text-primary-wms">Add your first warehouse</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

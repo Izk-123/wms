@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Stock Levels{% endblock %}
+{% block page_title %}Stock Levels{% endblock %}
+
+{% block content %}
+
+{# ── Quick Actions ────────────────────────────────── #}
+<div class="d-flex flex-wrap gap-2 mb-4 fade-in">
+    <a href="{% url 'inventory:stock-receive' %}" class="btn-wms-primary" style="background:#22c55e;border-color:#22c55e;">
+        <span class="material-icons" style="font-size:18px;">move_to_inbox</span> Receive Stock
+    </a>
+    <a href="{% url 'inventory:stock-issue' %}" class="btn-wms-primary" style="background:#ef4444;border-color:#ef4444;">
+        <span class="material-icons" style="font-size:18px;">outbox</span> Issue Stock
+    </a>
+    <a href="{% url 'inventory:stock-transfer' %}" class="btn-wms-primary" style="background:#f59e0b;border-color:#f59e0b;color:#0f172a;">
+        <span class="material-icons" style="font-size:18px;">swap_horiz</span> Transfer
+    </a>
+    <a href="{% url 'inventory:stock-adjust' %}" class="btn-wms-secondary">
+        <span class="material-icons" style="font-size:18px;">tune</span> Adjust
+    </a>
+</div>
+
+{# ── Stylish Filter Bar ────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+
+        {# Search input with icon #}
+        <div class="col-12 col-md-4">
+            <div class="input-with-icon">
+                <span class="material-icons filter-icon">search</span>
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search item name or SKU..."
+                       hx-get="{% url 'inventory:stock-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#stock-table"
+                       hx-include="[name='warehouse'],[name='low_stock']">
+            </div>
+        </div>
+
+        {# Warehouse filter #}
+        <div class="col-6 col-md-3">
+            <select name="warehouse" class="form-select-wms"
+                    hx-get="{% url 'inventory:stock-list' %}"
+                    hx-trigger="change"
+                    hx-target="#stock-table"
+                    hx-include="[name='q'],[name='low_stock']">
+                <option value="">All Warehouses</option>
+                {% for wh in warehouses %}
+                <option value="{{ wh.pk }}" {% if selected_warehouse == wh.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ wh.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        {# Low stock checkbox #}
+        <div class="col-6 col-md-3">
+            <div class="form-check ms-2 mt-2">
+                <input type="checkbox" name="low_stock" value="1" class="form-check-input"
+                       id="lowStockCheck" {% if low_stock_filter %}checked{% endif %}
+                       hx-get="{% url 'inventory:stock-list' %}"
+                       hx-trigger="change"
+                       hx-target="#stock-table"
+                       hx-include="[name='q'],[name='warehouse']">
+                <label class="form-check-label text-danger fw-semibold" for="lowStockCheck"
+                       style="font-size:0.85rem;">⚠ Low Stock Only</label>
+            </div>
+        </div>
+
+        {# Action buttons #}
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn-filter flex-fill">
+                <span class="material-icons" style="font-size:18px;">filter_list</span>
+                Filter
+            </button>
+            <a href="{% url 'inventory:stock-list' %}" class="btn-clear flex-fill">
+                <span class="material-icons" style="font-size:18px;">close</span>
+                Clear
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{# ── Table ───────────────────────────────────────────── #}
+<div class="wms-card" id="stock-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>SKU</th>
+                    <th>Warehouse</th>
+                    <th>Quantity</th>
+                    <th>Min Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr {% if stock.is_low_stock %}style="background:var(--warning-bg);"{% endif %}>
+                    <td>
+                        <a href="{% url 'inventory:item-detail' stock.item.pk %}" class="fw-semibold text-primary-wms text-decoration-none">
+                            {{ stock.item.name }}
+                        </a>
+                    </td>
+                    <td><span class="wms-badge badge-neutral">{{ stock.item.sku }}</span></td>
+                    <td>{{ stock.warehouse.name }}</td>
+                    <td class="fw-semibold {% if stock.is_low_stock %}text-danger{% endif %}">
+                        {{ stock.quantity }} {{ stock.item.unit.symbol }}
+                    </td>
+                    <td>{{ stock.item.minimum_stock }} {{ stock.item.unit.symbol }}</td>
+                    <td>
+                        {% if stock.is_low_stock %}
+                        <span class="wms-badge badge-danger">⚠ Low Stock</span>
+                        {% else %}
+                        <span class="wms-badge badge-success">OK</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'inventory:stock-receive' %}?item={{ stock.item.pk }}&warehouse={{ stock.warehouse.pk }}"
+                               class="btn-wms-secondary" style="padding:.15rem .4rem;" title="Receive">
+                                <span class="material-icons" style="font-size:15px;">add</span>
+                            </a>
+                            <a href="{% url 'inventory:stock-issue' %}?item={{ stock.item.pk }}&warehouse={{ stock.warehouse.pk }}"
+                               class="btn-wms-secondary" style="padding:.15rem .4rem;" title="Issue">
+                                <span class="material-icons" style="font-size:15px;">remove</span>
+                            </a>
+                            <a href="{% url 'inventory:stock-adjust' %}?item={{ stock.item.pk }}&warehouse={{ stock.warehouse.pk }}"
+                               class="btn-wms-secondary" style="padding:.15rem .4rem;" title="Adjust">
+                                <span class="material-icons" style="font-size:15px;">tune</span>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">stacked_bar_chart</span>
+                            <h6>No stock records found</h6>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

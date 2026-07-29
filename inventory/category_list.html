@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Item Categories{% endblock %}
+
+{% block content %}
+
+{% url 'inventory:category-create' as add_category_url %}
+{% include 'inventory/_card_header.html' with page_title="Categories" page_subtitle="Manage item categories" add_url=add_category_url add_label="Add Category" %}
+
+<!-- Search -->
+<div class="wms-card mb-3">
+    <div class="wms-card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-6">
+                <input type="text" name="q" value="{{ q }}" class="form-control-wms"
+                       placeholder="Search categories..."
+                       hx-get="{% url 'inventory:category-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#category-table">
+            </div>
+            <div class="col-12 col-md-2">
+                <a href="{% url 'inventory:category-list' %}" class="btn-wms-secondary w-100 text-center">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="wms-card" id="category-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for category in categories %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ category.name }}</td>
+                    <td>{{ category.description|default:"—" }}</td>
+                    <td style="color:var(--text-muted);">{{ category.created_at|date:"d M Y" }}</td>
+                    <td>
+                        <a href="{% url 'inventory:category-update' category.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">category</span>
+                            <h6>No categories found</h6>
+                            <p><a href="{% url 'inventory:category-create' %}" class="text-primary-wms">Add your first category</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ q }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ q }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

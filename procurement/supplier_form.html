@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}{% if form.instance.pk %}Edit Supplier{% else %}Add Supplier{% endif %}{% endblock %}
+{% block page_title %}{% if form.instance.pk %}Edit Supplier{% else %}Add Supplier{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center fade-in">
+    <div class="col-12 col-lg-8">
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <a href="{% url 'procurement:supplier-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+                <span class="material-icons" style="font-size:18px;">arrow_back</span>
+            </a>
+            <h5 class="fw-semibold mb-0 text-primary-wms">
+                {% if form.instance.pk %}Edit: {{ form.instance.name }}{% else %}New Supplier{% endif %}
+            </h5>
+        </div>
+
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label-wms">Company Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <div class="text-danger" style="font-size:0.8rem;">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Contact Person</label>
+                            {{ form.contact_person }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Email</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Phone</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label-wms">Address</label>
+                            {{ form.address }}
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label fw-semibold text-primary-wms">Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4 pt-3 border-top border-wms">
+                        <button type="submit" class="btn-wms-primary">
+                            <span class="material-icons me-1" style="font-size:18px;vertical-align:middle;">save</span>
+                            {% if form.instance.pk %}Save Changes{% else %}Create{% endif %}
+                        </button>
+                        <a href="{% url 'procurement:supplier-list' %}" class="btn-wms-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

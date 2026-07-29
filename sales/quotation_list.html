@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}Quotations{% endblock %}
+{% block page_title %}Quotations{% endblock %}
+
+{% block content %}
+
+{% url 'sales:quotation-create' as add_url %}
+{% include 'inventory/_card_header.html' with page_title="Quotations" page_subtitle="Manage your quotations" add_url=add_url add_label="New Quotation" %}
+
+{# ── Filter Bar ────────────────────────────────────────── #}
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-12 col-md-4">
+            <select name="status" class="form-select-wms"
+                    hx-get="{% url 'sales:quotation-list' %}"
+                    hx-trigger="change"
+                    hx-target="#quotation-table">
+                <option value="">All Statuses</option>
+                {% for val, label in statuses %}
+                <option value="{{ val }}" {% if selected_status == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'sales:quotation-list' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+{# ── Table ────────────────────────────────────────────── #}
+<div class="wms-card" id="quotation-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Quotation #</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Valid Until</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for quotation in quotations %}
+                <tr>
+                    <td class="fw-semibold">
+                        <a href="{% url 'sales:quotation-detail' quotation.pk %}" class="text-primary-wms text-decoration-none">
+                            {{ quotation.reference }}
+                        </a>
+                    </td>
+                    <td>{{ quotation.customer.name }}</td>
+                    <td>{{ quotation.quotation_date|date:"d M Y" }}</td>
+                    <td>{{ quotation.valid_until|date:"d M Y"|default:"—" }}</td>
+                    <td>
+                        <span class="wms-badge
+                            {% if quotation.status == 'draft' %}badge-neutral
+                            {% elif quotation.status == 'sent' %}badge-info
+                            {% elif quotation.status == 'accepted' %}badge-success
+                            {% elif quotation.status == 'rejected' %}badge-danger
+                            {% elif quotation.status == 'expired' %}badge-warning
+                            {% elif quotation.status == 'cancelled' %}badge-danger
+                            {% endif %}">
+                            {{ quotation.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ currency_symbol }} {{ quotation.total_amount|floatformat:2 }}</td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'sales:quotation-detail' quotation.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a>
+                            {% if quotation.status == 'draft' %}
+                            <a href="{% url 'sales:quotation-update' quotation.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                                <span class="material-icons" style="font-size:16px;">edit</span>
+                            </a>
+                            {% endif %}
+                            {# ── Show link to order if converted ── #}
+                            {% if quotation.sales_orders.exists %}
+                            <a href="{% url 'sales:order-detail' quotation.sales_orders.first.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;background:#0ea5e9;color:white;" title="View Order">
+                                <span class="material-icons" style="font-size:16px;">shopping_cart</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">description</span>
+                            <h6>No quotations found</h6>
+                            <p><a href="{% url 'sales:quotation-create' %}" class="text-primary-wms">Create your first quotation</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

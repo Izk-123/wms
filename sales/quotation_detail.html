@@ -1,0 +1,83 @@
+<!-- sales/quotation_detail.html -->
+{% extends 'base.html' %}
+{% block title %}{{ quotation.reference }}{% endblock %}
+{% block page_title %}Quotation Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4">
+    <a href="{% url 'sales:quotation-list' %}" class="btn-wms-secondary">Back</a>
+    <h5 class="fw-semibold mb-0">{{ quotation.reference }}</h5>
+
+    <div class="ms-auto d-flex gap-2">
+        {% if quotation.status == 'draft' %}
+        <a href="{% url 'sales:quotation-update' quotation.pk %}" class="btn-wms-primary">Edit</a>
+        {% endif %}
+
+        {% if quotation.status == 'draft' or quotation.status == 'sent' %}
+        <form method="post" action="{% url 'sales:quotation-accept' quotation.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-wms-primary" style="background:#22c55e;">
+                ✅ Accept & Create Order/Invoice
+            </button>
+        </form>
+        {% endif %}
+
+        <a href="{% url 'sales:quotation-print' quotation.pk %}" class="btn-wms-secondary" target="_blank">🖨️ Print</a>
+
+        {% if quotation.sales_orders.exists %}
+        <a href="{% url 'sales:order-detail' quotation.sales_orders.first.pk %}" class="btn-wms-info">
+            📦 View Order
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="wms-card">
+            <div class="wms-card-body">
+                <h6>Summary</h6>
+                <table class="wms-table">
+                    <tr><td>Status</td><td><span class="wms-badge badge-{{ quotation.status }}">{{ quotation.get_status_display }}</span></td></tr>
+                    <tr><td>Customer</td><td>{{ quotation.customer.name }}</td></tr>
+                    <tr><td>Date</td><td>{{ quotation.quotation_date|date:"d M Y" }}</td></tr>
+                    <tr><td>Valid Until</td><td>{{ quotation.valid_until|date:"d M Y"|default:"—" }}</td></tr>
+                    <tr><td>Subtotal</td><td>{{ currency_symbol }} {{ quotation.total_before_discount|floatformat:2 }}</td></tr>
+                    {% if quotation.discount_amount > 0 %}
+                    <tr><td>Discount</td><td class="text-danger">- {{ currency_symbol }} {{ quotation.discount_amount|floatformat:2 }}</td></tr>
+                    {% endif %}
+                    <tr><td><strong>Total</strong></td><td><strong>{{ currency_symbol }} {{ quotation.total_amount|floatformat:2 }}</strong></td></tr>
+                </table>
+                {% if quotation.notes %}
+                <p class="mt-2 text-secondary">{{ quotation.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header"><h6>Items</h6></div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for item in quotation.items.all %}
+                        <tr>
+                            <td>{{ item.item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ currency_symbol }} {{ item.unit_price|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,42 @@
+{# ======================================================================== #}
+{# ISSUE STOCK — Form for issuing materials to projects or production      #}
+{# ======================================================================== #}
+
+{% extends 'inventory/_operation_layout.html' %}
+
+{% block title %}Issue Stock{% endblock %}
+{% block page_title %}Issue Stock{% endblock %}
+
+{% block op_title %}Issue Stock{% endblock %}
+{% block op_subtitle %}Issue materials to a project, department, or production line{% endblock %}
+{% block submit_icon %}outbox{% endblock %}
+{% block submit_label %}Issue Stock{% endblock %}
+
+{% block form_fields %}
+<div class="row g-3">
+    <div class="col-12">
+        <label class="form-label-wms">Item <span class="text-danger">*</span></label>
+        {{ form.item }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">Warehouse <span class="text-danger">*</span></label>
+        {{ form.warehouse }}
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label-wms">Quantity <span class="text-danger">*</span></label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}
+        <div class="text-danger" style="font-size:0.8rem;">{{ form.quantity.errors.0 }}</div>
+        {% endif %}
+    </div>
+    <div class="col-12">
+        <label class="form-label-wms">Reference</label>
+        {{ form.reference }}
+        <div class="text-muted-wms" style="font-size:.78rem;">Requisition number, project code, work order, etc.</div>
+    </div>
+    <div class="col-12">
+        <label class="form-label-wms">Notes</label>
+        {{ form.notes }}
+    </div>
+</div>
+{% endblock %}

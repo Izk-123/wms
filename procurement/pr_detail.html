@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}{{ pr.reference }}{% endblock %}
+{% block page_title %}Purchase Request Detail{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-2 mb-4 fade-in">
+    <a href="{% url 'procurement:pr-list' %}" class="btn-wms-secondary" style="padding:.2rem .6rem;">
+        <span class="material-icons" style="font-size:18px;">arrow_back</span>
+    </a>
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">{{ pr.reference }}</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
+            Requested by {{ pr.requested_by.get_full_name }} &middot;
+            {{ pr.created_at|date:"d M Y H:i" }}
+        </p>
+    </div>
+    <div class="ms-auto d-flex gap-2 flex-wrap">
+        {% if pr.status == "draft" %}
+        <form method="post" action="{% url 'procurement:pr-action' pr.pk 'submit' %}">
+            {% csrf_token %}
+            <button class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+                <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">send</span>
+                Submit for Approval
+            </button>
+        </form>
+        {% endif %}
+        {% if pr.status == "submitted" and request.user.role.name == "Warehouse Manager" %}
+        <form method="post" action="{% url 'procurement:pr-action' pr.pk 'approve' %}">
+            {% csrf_token %}
+            <button class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;">
+                <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span>
+                Approve
+            </button>
+        </form>
+        <button class="btn-wms-primary" style="background:#ef4444;font-size:.78rem;padding:.3rem .8rem;" data-bs-toggle="modal" data-bs-target="#rejectModal">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">cancel</span>
+            Reject
+        </button>
+        {% endif %}
+        {% if pr.status == "approved" %}
+        <a href="{% url 'procurement:po-create' %}?pr={{ pr.pk }}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">receipt_long</span>
+            Create PO
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{# ── Reject Modal ─────────────────────────────────────── #}
+{% if pr.status == "submitted" %}
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-wms">
+                <h6 class="modal-title text-primary-wms">Reject Request</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'procurement:pr-action' pr.pk 'reject' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="text-secondary-wms">Please provide a reason for rejection.</p>
+                    {{ reject_form.reason }}
+                </div>
+                <div class="modal-footer border-wms">
+                    <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn-wms-primary" style="background:#ef4444;">Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 fade-in">
+    <div class="col-12 col-lg-4">
+        <div class="wms-card h-100">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Status</h6>
+                <p>
+                    <span class="wms-badge
+                        {% if pr.status == 'draft' %}badge-neutral
+                        {% elif pr.status == 'submitted' %}badge-info
+                        {% elif pr.status == 'approved' %}badge-success
+                        {% elif pr.status == 'rejected' %}badge-danger
+                        {% elif pr.status == 'ordered' %}badge-warning
+                        {% endif %}" style="padding:.5rem 1rem;">
+                        {{ pr.get_status_display }}
+                    </span>
+                </p>
+                {% if pr.approved_by %}
+                <h6 class="fw-semibold text-primary-wms mt-3">Approved By</h6>
+                <p class="text-secondary-wms">{{ pr.approved_by.get_full_name }} at {{ pr.approved_at|date:"d M Y H:i" }}</p>
+                {% endif %}
+                {% if pr.rejection_reason %}
+                <h6 class="fw-semibold text-primary-wms mt-3">Rejection Reason</h6>
+                <p class="text-danger">{{ pr.rejection_reason }}</p>
+                {% endif %}
+                {% if pr.notes %}
+                <h6 class="fw-semibold text-primary-wms mt-3">Notes</h6>
+                <p class="text-secondary-wms">{{ pr.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="wms-card">
+            <div class="wms-card-header">
+                <h6>Request Items</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="wms-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Unit</th>
+                            <th>Est. Unit Cost</th>
+                            <th>Est. Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in pr.items.all %}
+                        <tr>
+                            <td>{{ item.item.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>{{ item.item.unit.symbol }}</td>
+                            <td>MWK {{ item.estimated_unit_cost|floatformat:2 }}</td>
+                            <td class="fw-semibold">MWK {{ item.estimated_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="text-end fw-semibold">Total Estimated:</td>
+                            <td class="fw-bold">MWK {{ pr.items.all|sum:"estimated_total"|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Budget vs Actual{% endblock %}
+{% block page_title %}Budget vs Actual Report{% endblock %}
+
+{% block content %}
+
+<div class="filter-bar">
+    <form method="get" class="row g-2 align-items-end">
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms">Year</label>
+            <input type="number" name="year" value="{{ year }}" class="form-control-wms" min="2000" max="2100">
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label-wms">Department</label>
+            <select name="department" class="form-select-wms">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.pk }}" {% if selected_department == dept.pk|stringformat:"s" %}selected{% endif %}>{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-md-2">
+            <button type="submit" class="btn-filter w-100">Apply</button>
+        </div>
+        <div class="col-12 col-md-2">
+            <a href="{% url 'finance:budget-vs-actual' %}" class="btn-clear w-100 text-center">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="wms-card">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Budget</th>
+                    <th>Actual</th>
+                    <th>Variance</th>
+                    <th>% Used</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in report %}
+                <tr>
+                    <td>{{ row.department }}</td>
+                    <td class="fw-semibold">{{ currency_symbol }} {{ row.budget|floatformat:2 }}</td>
+                    <td class="fw-semibold">{{ currency_symbol }} {{ row.actual|floatformat:2 }}</td>
+                    <td class="fw-bold {% if row.variance < 0 %}text-danger{% else %}text-success{% endif %}">
+                        {{ currency_symbol }} {{ row.variance|floatformat:2 }}
+                    </td>
+                    <td>
+                        <div class="progress" style="height:20px;">
+                            <div class="progress-bar {% if row.percentage > 100 %}bg-danger{% else %}bg-success{% endif %}"
+                                 role="progressbar" style="width:{{ row.percentage|floatformat:0 }}%;">
+                                {{ row.percentage|floatformat:0 }}%
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">bar_chart</span>
+                            <h6>No budget data found</h6>
+                            <p><a href="{% url 'finance:budget-create' %}" class="text-primary-wms">Create a budget</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

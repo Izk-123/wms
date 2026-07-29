@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Units{% endblock %}
+{% block page_title %}Units of Measure{% endblock %}
+
+{% block content %}
+
+{% url 'inventory:unit-create' as add_unit_url %}
+{% include 'inventory/_card_header.html' with page_title="Units" page_subtitle="Manage units of measure" add_url=add_unit_url add_label="Add Unit" %}
+
+<!-- Search -->
+<div class="wms-card mb-3">
+    <div class="wms-card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-6">
+                <input type="text" name="q" value="{{ request.GET.q }}" class="form-control-wms"
+                       placeholder="Search units..."
+                       hx-get="{% url 'inventory:unit-list' %}"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-target="#unit-table">
+            </div>
+            <div class="col-12 col-md-2">
+                <a href="{% url 'inventory:unit-list' %}" class="btn-wms-secondary w-100 text-center">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="wms-card" id="unit-table">
+    <div class="table-responsive">
+        <table class="wms-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Symbol</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for unit in units %}
+                <tr>
+                    <td class="fw-semibold text-primary-wms">{{ unit.name }}</td>
+                    <td><code>{{ unit.symbol }}</code></td>
+                    <td>
+                        <a href="{% url 'inventory:unit-update' unit.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Edit">
+                            <span class="material-icons" style="font-size:16px;">edit</span>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3">
+                        <div class="empty-state">
+                            <span class="material-icons empty-icon">straighten</span>
+                            <h6>No units found</h6>
+                            <p><a href="{% url 'inventory:unit-create' %}" class="text-primary-wms">Add your first unit</a></p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center py-3">
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">«</a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">»</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}
