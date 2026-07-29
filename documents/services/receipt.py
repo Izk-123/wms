@@ -11,6 +11,9 @@ class ReceiptPDFService(BasePDFService):
         invoice = payment.invoice
         currency = self.company_data['currency']
 
+        # Get receiver name – fallback to username if full name is empty
+        receiver = payment.received_by.get_full_name() or payment.received_by.username
+
         story.append(Paragraph("RECEIPT", self.styles['CompanyHeading']))
         story.append(Paragraph(f"Receipt No: {payment.receipt_number}", self.styles['Normal']))
         story.append(Paragraph(f"Invoice: {invoice.reference}", self.styles['Normal']))
@@ -18,7 +21,7 @@ class ReceiptPDFService(BasePDFService):
         story.append(Paragraph(f"Payment Date: {payment.payment_date.strftime('%d %B %Y %H:%M')}", self.styles['Normal']))
         story.append(Paragraph(f"Amount Paid: {currency} {payment.amount:.2f}", self.styles['Normal']))
         story.append(Paragraph(f"Payment Method: {payment.get_payment_method_display()}", self.styles['Normal']))
-        story.append(Paragraph(f"Received By: {payment.received_by.get_full_name()}", self.styles['Normal']))
+        story.append(Paragraph(f"Received By: {receiver}", self.styles['Normal']))
 
         # Remaining balance
         balance = invoice.balance_due
