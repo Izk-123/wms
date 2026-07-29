@@ -1,5 +1,7 @@
 # procurement/views.py
-from datetime import timezone
+from django.http import HttpResponse
+from django.utils import timezone
+from django.db.models import Sum
 
 from django.views.generic import (
     ListView, CreateView, UpdateView, DetailView, View
@@ -14,6 +16,8 @@ from company_settings.models import ApprovalRequest
 from company_settings.services import approve_request, create_approval_request, get_approval_required, reject_request, user_can_approve
 from core.mixins import WMSPermissionMixin
 from accounts.views import log_activity
+from documents.services.grn import GoodsReceiptPDFService
+from documents.services.purchase_order import PurchaseOrderPDFService
 
 from .models import (
     Supplier, PurchaseRequest, PurchaseOrder, GoodsReceipt
@@ -339,6 +343,36 @@ class PurchaseOrderMarkSentView(WMSPermissionMixin, View):
             )
             messages.success(request, f"{po.reference} marked as sent to supplier.")
         return redirect('procurement:po-detail', pk=pk)
+    
+
+class PurchaseOrderPDFView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        po = get_object_or_404(PurchaseOrder, pk=pk)
+        if po.pdf_file and po.pdf_file.storage.exists(po.pdf_file.name):
+            response = HttpResponse(po.pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{po.pdf_file.name}"'
+            return response
+        service = PurchaseOrderPDFService(po)
+        service.save_to_object()
+        return service.render_to_response()
+
+class PurchaseOrderEmailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        po = get_object_or_404(PurchaseOrder, pk=pk)
+        if not po.supplier.email:
+            messages.error(request, "Supplier has no email address.")
+            return redirect('procurement:po-detail', pk=pk)
+        service = PurchaseOrderPDFService(po)
+        try:
+            service.email(
+                recipient=po.supplier.email,
+                subject=f"Purchase Order {po.reference}",
+                message="Please find attached your purchase order."
+            )
+            messages.success(request, f"PO sent to {po.supplier.email}")
+        except Exception as e:
+            messages.error(request, f"Failed to send: {e}")
+        return redirect('procurement:po-detail', pk=pk)
 
 
 # ─── Goods Receipt Views ───────────────────────────────────────
@@ -445,4 +479,35 @@ class GoodsReceiptConfirmView(WMSPermissionMixin, View):
             )
         except ValidationError as e:
             messages.error(request, str(e))
+        return redirect('procurement:grn-detail', pk=pk)
+
+class GoodsReceiptPDFView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        grn = get_object_or_404(GoodsReceipt, pk=pk)
+        if grn.pdf_file and grn.pdf_file.storage.exists(grn.pdf_file.name):
+            response = HttpResponse(grn.pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{grn.pdf_file.name}"'
+            return response
+        service = GoodsReceiptPDFService(grn)
+        service.save_to_object()
+        return service.render_to_response()
+
+class GoodsReceiptEmailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        grn = get_object_or_404(GoodsReceipt, pk=pk)
+        # Email to procurement/warehouse managers? We'll use supplier email as default.
+        supplier_email = grn.purchase_order.supplier.email
+        if not supplier_email:
+            messages.error(request, "Supplier has no email.")
+            return redirect('procurement:grn-detail', pk=pk)
+        service = GoodsReceiptPDFService(grn)
+        try:
+            service.email(
+                recipient=supplier_email,
+                subject=f"Goods Receipt {grn.reference}",
+                message="Please find attached the goods receipt note."
+            )
+            messages.success(request, f"GRN sent to {supplier_email}")
+        except Exception as e:
+            messages.error(request, f"Failed to send: {e}")
         return redirect('procurement:grn-detail', pk=pk)

@@ -1,19 +1,17 @@
 """
 sales/admin.py
-Admin configuration for:
-- Customer
-- SalesOrder
-- Invoice
-- Payment
-All use Unfold's ModelAdmin for a modern UI.
+Simplified admin configuration for Sales module.
 """
 
 from django.contrib import admin
 from unfold.admin import ModelAdmin
-from unfold.contrib.filters.admin import (
-    RelatedDropdownFilter,
+from unfold.contrib.filters.admin import RelatedDropdownFilter
+from .models import (
+    Customer, Quotation, QuotationItem,
+    SalesOrder, SalesOrderItem,
+    Invoice, InvoiceItem,
+    Payment
 )
-from .models import Customer, SalesOrder, Invoice, Payment, SalesOrderItem, InvoiceItem
 
 
 @admin.register(Customer)
@@ -24,24 +22,68 @@ class CustomerAdmin(ModelAdmin):
     ordering = ('name',)
 
 
+# ─── Quotation Admin ────────────────────────────────
+
+class QuotationItemInline(admin.TabularInline):
+    model = QuotationItem
+    extra = 0
+    fields = ('item', 'quantity', 'unit_price', 'notes')
+
+
+@admin.register(Quotation)
+class QuotationAdmin(ModelAdmin):
+    list_display = (
+        'reference', 'customer', 'quotation_date', 'valid_until',
+        'status', 'total_amount', 'created_by'
+    )
+    list_filter = (
+        'status',
+        'quotation_date',
+        ('customer', RelatedDropdownFilter),
+    )
+    search_fields = ('reference', 'customer__name', 'notes')
+    readonly_fields = ('reference', 'quotation_date', 'created_by', 'created_at', 'updated_at')
+    fieldsets = (
+        (None, {
+            'fields': ('reference', 'customer', 'status', 'notes')
+        }),
+        ('Dates', {
+            'fields': ('quotation_date', 'valid_until')
+        }),
+        ('Pricing', {
+            'fields': ('discount_amount',)
+        }),
+        ('Audit', {
+            'fields': ('created_by', 'created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    inlines = [QuotationItemInline]
+    ordering = ('-created_at',)
+
+    def total_amount(self, obj):
+        return obj.total_amount
+    total_amount.short_description = 'Total'
+
+
+# ─── Sales Order Admin ──────────────────────────────
+
 class SalesOrderItemInline(admin.TabularInline):
     model = SalesOrderItem
     extra = 0
-    fields = ('item', 'quantity', 'unit_price', 'invoiced_quantity', 'notes')
-    readonly_fields = ('invoiced_quantity',)
+    fields = ('item', 'quantity', 'unit_price', 'notes')
 
 
 @admin.register(SalesOrder)
 class SalesOrderAdmin(ModelAdmin):
     list_display = (
         'reference', 'customer', 'order_date', 'status',
-        'total_before_discount', 'discount_amount', 'total_amount', 'created_by'
+        'total_amount', 'created_by'
     )
     list_filter = (
         'status',
         'order_date',
         ('customer', RelatedDropdownFilter),
-        'discount_approved',
     )
     search_fields = ('reference', 'customer__name', 'notes')
     readonly_fields = ('reference', 'created_at', 'updated_at')
@@ -50,10 +92,10 @@ class SalesOrderAdmin(ModelAdmin):
             'fields': ('reference', 'customer', 'status', 'warehouse', 'notes')
         }),
         ('Pricing', {
-            'fields': ('discount_amount', 'discount_approved')
+            'fields': ('discount_amount',)
         }),
-        ('Approval', {
-            'fields': ('approved_by',)
+        ('Links', {
+            'fields': ('quotation',)
         }),
         ('Audit', {
             'fields': ('created_by', 'created_at', 'updated_at'),
@@ -63,10 +105,12 @@ class SalesOrderAdmin(ModelAdmin):
     inlines = [SalesOrderItemInline]
     ordering = ('-created_at',)
 
-    def total_before_discount(self, obj):
-        return obj.total_before_discount
-    total_before_discount.short_description = 'Subtotal'
+    def total_amount(self, obj):
+        return obj.total_amount
+    total_amount.short_description = 'Total'
 
+
+# ─── Invoice Admin ───────────────────────────────────
 
 class InvoiceItemInline(admin.TabularInline):
     model = InvoiceItem
@@ -88,14 +132,13 @@ class InvoiceAdmin(ModelAdmin):
         ('customer', RelatedDropdownFilter),
     )
     search_fields = ('reference', 'customer__name', 'sales_order__reference')
-    # ✅ FIX: Added invoice_date and payment_date (below) to readonly_fields
     readonly_fields = ('reference', 'invoice_date', 'paid_amount', 'created_at', 'updated_at')
     fieldsets = (
         (None, {
             'fields': ('reference', 'customer', 'sales_order', 'status')
         }),
         ('Dates', {
-            'fields': ('invoice_date', 'due_date')  # invoice_date now readonly
+            'fields': ('invoice_date', 'due_date')
         }),
         ('Financials', {
             'fields': ('total_amount', 'paid_amount')
@@ -116,6 +159,8 @@ class InvoiceAdmin(ModelAdmin):
     balance_due.short_description = 'Balance Due'
 
 
+# ─── Payment Admin ──────────────────────────────────
+
 @admin.register(Payment)
 class PaymentAdmin(ModelAdmin):
     list_display = (
@@ -128,7 +173,6 @@ class PaymentAdmin(ModelAdmin):
         ('invoice', RelatedDropdownFilter),
     )
     search_fields = ('invoice__reference', 'reference', 'received_by__username')
-    # ✅ FIX: Added payment_date to readonly_fields
     readonly_fields = ('payment_date',)
     fieldsets = (
         (None, {
@@ -138,7 +182,7 @@ class PaymentAdmin(ModelAdmin):
             'fields': ('notes',)
         }),
         ('Audit', {
-            'fields': ('received_by', 'payment_date'),  # payment_date now readonly
+            'fields': ('received_by', 'payment_date'),
         }),
     )
     ordering = ('-payment_date',)

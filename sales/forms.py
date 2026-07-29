@@ -79,3 +79,34 @@ class InvoiceForm(forms.ModelForm):
             'due_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
+        
+# sales/forms.py
+
+from .models import Quotation, QuotationItem
+
+class QuotationForm(forms.ModelForm):
+    class Meta:
+        model = Quotation
+        fields = ['customer', 'valid_until', 'discount_amount', 'notes']
+        widgets = {
+            'customer': forms.Select(attrs={'class': 'form-select'}),
+            'valid_until': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'discount_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class QuotationItemForm(forms.ModelForm):
+    class Meta:
+        model = QuotationItem
+        fields = ['item', 'quantity', 'unit_price', 'notes']
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-select'}),
+            'quantity': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0.01'}),
+            'unit_price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'notes': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+QuotationItemFormSet = inlineformset_factory(
+    Quotation, QuotationItem, form=QuotationItemForm,
+    extra=3, min_num=1, validate_min=True, can_delete=True
+)

@@ -150,15 +150,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 created_at__date__gte=month_start,
                 created_at__date__lte=today
             ).aggregate(total=Sum('amount'))['total'] or 0,
-            'net_profit': Payment.objects.filter(
+            # 👇 FIXED: parentheses around each aggregate expression
+            'net_profit': (Payment.objects.filter(
                 payment_date__date__gte=month_start,
                 payment_date__date__lte=today
-            ).aggregate(total=Sum('amount'))['total'] or 0 -
-            Expense.objects.filter(
+            ).aggregate(total=Sum('amount'))['total'] or 0) -
+            (Expense.objects.filter(
                 status='paid',
                 created_at__date__gte=month_start,
                 created_at__date__lte=today
-            ).aggregate(total=Sum('amount'))['total'] or 0,
+            ).aggregate(total=Sum('amount'))['total'] or 0),
             'cash_balance': JournalLine.objects.filter(
                 account__code=cash_code
             ).aggregate(balance=Sum('debit') - Sum('credit'))['balance'] or 0,

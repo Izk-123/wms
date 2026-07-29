@@ -10,22 +10,23 @@ urlpatterns = [
     path('customers/add/', views.CustomerCreateView.as_view(), name='customer-create'),
     path('customers/<int:pk>/edit/', views.CustomerUpdateView.as_view(), name='customer-update'),
 
+    # Quotations
+    path('quotations/', views.QuotationListView.as_view(), name='quotation-list'),
+    path('quotations/add/', views.QuotationCreateView.as_view(), name='quotation-create'),
+    path('quotations/<int:pk>/', views.QuotationDetailView.as_view(), name='quotation-detail'),
+    path('quotations/<int:pk>/edit/', views.QuotationUpdateView.as_view(), name='quotation-update'),
+    path('quotations/<int:pk>/accept/', views.QuotationAcceptView.as_view(), name='quotation-accept'),
+    path('quotations/<int:pk>/print/', views.QuotationPDFView.as_view(), name='quotation-print'),
+
     # Sales Orders
     path('orders/', views.SalesOrderListView.as_view(), name='order-list'),
-    path('orders/add/', views.SalesOrderCreateView.as_view(), name='order-create'),
     path('orders/<int:pk>/', views.SalesOrderDetailView.as_view(), name='order-detail'),
-    path('orders/<int:pk>/edit/', views.SalesOrderUpdateView.as_view(), name='order-update'),
-    path('orders/<int:pk>/approve-discount/', views.ApproveDiscountView.as_view(), name='approve-discount'),
-
-    # ─── NEW: Ready to Invoice ───────────────────────
-    path('ready-to-invoice/', views.ReadyToInvoiceListView.as_view(), name='ready-to-invoice'),
+    path('orders/<int:pk>/print/', views.SalesOrderPDFView.as_view(), name='order-print'),
 
     # Invoices
     path('invoices/', views.InvoiceListView.as_view(), name='invoice-list'),
-    path('invoices/add/', views.InvoiceCreateView.as_view(), name='invoice-create'),
-    path('invoices/add/order/<int:order_pk>/', views.InvoiceCreateView.as_view(), name='invoice-create-from-order'),
     path('invoices/<int:pk>/', views.InvoiceDetailView.as_view(), name='invoice-detail'),
-    path('invoices/<int:pk>/print/', views.InvoicePrintView.as_view(), name='invoice-print'),
+    path('invoices/<int:pk>/print/', views.InvoicePDFView.as_view(), name='invoice-print'),
 
     # Payments
     path('invoices/<int:invoice_pk>/payment/', views.PaymentCreateView.as_view(), name='payment-create'),

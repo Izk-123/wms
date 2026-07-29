@@ -22,10 +22,14 @@ urlpatterns = [
     path('orders/add/', views.PurchaseOrderCreateView.as_view(), name='po-create'),
     path('orders/<int:pk>/', views.PurchaseOrderDetailView.as_view(), name='po-detail'),
     path('orders/<int:pk>/mark-sent/', views.PurchaseOrderMarkSentView.as_view(), name='po-mark-sent'),
+    path('orders/<int:pk>/print/', views.PurchaseOrderPDFView.as_view(), name='po-print'),
+    path('orders/<int:pk>/email/', views.PurchaseOrderEmailView.as_view(), name='po-email'),
 
     # Goods Receipts
     path('grn/', views.GoodsReceiptListView.as_view(), name='grn-list'),
     path('grn/create/<int:po_pk>/', views.GoodsReceiptCreateView.as_view(), name='grn-create'),
     path('grn/<int:pk>/', views.GoodsReceiptDetailView.as_view(), name='grn-detail'),
     path('grn/<int:pk>/confirm/', views.GoodsReceiptConfirmView.as_view(), name='grn-confirm'),
+    path('grn/<int:pk>/print/', views.GoodsReceiptPDFView.as_view(), name='grn-print'),
+    path('grn/<int:pk>/email/', views.GoodsReceiptEmailView.as_view(), name='grn-email'),
 ]

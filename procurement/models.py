@@ -134,6 +134,7 @@ class PurchaseOrder(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    pdf_file = models.FileField(upload_to='pdfs/purchase_orders/', blank=True, null=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -207,6 +208,12 @@ class GoodsReceipt(models.Model):
     )
     notes = models.TextField(blank=True)
     received_at = models.DateTimeField(auto_now_add=True)
+    pdf_file = models.FileField(
+        upload_to='pdfs/grns/',
+        blank=True,
+        null=True,
+        help_text="Stored Goods Receipt PDF for audit"
+    )
 
     class Meta:
         ordering = ['-received_at']
