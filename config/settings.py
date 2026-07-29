@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # ── Security Settings ──────────────────────────────────
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
-# DEBUG = True
+# DEBUG = True   # ← keep this commented out in production
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv())
 
 # ───────────────────────────────────────────────────────────────
@@ -199,9 +199,135 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
+# ───────────────────────────────────────────────────────────────
+# LOGGING CONFIGURATION – captures all errors to file & console
+# ───────────────────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django_error.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'level': 'ERROR',
+            'formatter': 'verbose',
+        },
+        'file_debug': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django_debug.log',
+            'maxBytes': 1024 * 1024 * 10,
+            'backupCount': 5,
+            'level': 'DEBUG',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        # Django core
+        'django': {
+            'handlers': ['console', 'file', 'file_debug'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+
+        # ─── Third-party apps ──────────────────────────────
+        'axes': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'channels': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+
+        # ─── Custom apps (all) ─────────────────────────────
+        'notifications': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'accounts': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'inventory': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'procurement': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'operations': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'assets': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'reports': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'sales': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'finance': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'company_settings': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'hr': {
+            'handlers': ['console', 'file_debug'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
 # ── Unfold Admin Configuration ──────────────────────────
-# Unfold provides a modern, customisable admin interface.
-# The navigation below defines the sidebar menu in the admin.
 UNFOLD = {
     "SITE_TITLE":     "J&N Pvt Ltd.",
     "SITE_HEADER":    "ERP System",
