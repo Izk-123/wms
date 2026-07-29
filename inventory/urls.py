@@ -35,6 +35,9 @@ urlpatterns = [
     # Stock
     path('stock/', views.StockListView.as_view(), name='stock-list'),
     path('movements/', views.StockMovementListView.as_view(), name='movement-list'),
+    path('movements/<int:pk>/', views.StockMovementDetailView.as_view(), name='movement-detail'),
+    path('movements/<int:pk>/print/', views.StockIssueVoucherPDFView.as_view(), name='movement-print'),
+    path('movements/<int:pk>/email/', views.StockIssueVoucherEmailView.as_view(), name='movement-email'),
     
     # Stock Operations
     path('stock/receive/', views.StockReceiveView.as_view(), name='stock-receive'),

@@ -1,4 +1,5 @@
 # inventory/views.py
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import ListView, CreateView, TemplateView, UpdateView, DetailView, View, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -9,6 +10,7 @@ from django.core.exceptions import ValidationError
 
 from core.mixins import WMSPermissionMixin
 from accounts.views import log_activity
+from documents.services.stock_issue import StockIssueVoucherPDFService
 
 from .models import Category, Unit, Warehouse, Item, Stock, StockMovement
 from .services import receive_stock, issue_stock, transfer_stock, adjust_stock
@@ -471,6 +473,45 @@ class StockIssueView(WMSPermissionMixin, FormView):
         except ValidationError as e:
             form.add_error(None, e)
             return self.form_invalid(form)
+        
+# inventory/views.py - add
+class StockMovementDetailView(LoginRequiredMixin, DetailView):
+    model = StockMovement
+    template_name = 'inventory/movement_detail.html'
+    context_object_name = 'movement'
+        
+
+class StockIssueVoucherPDFView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        movement = get_object_or_404(StockMovement, pk=pk, movement_type='OUT')
+        if movement.pdf_file and movement.pdf_file.storage.exists(movement.pdf_file.name):
+            response = HttpResponse(movement.pdf_file.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{movement.pdf_file.name}"'
+            return response
+        service = StockIssueVoucherPDFService(movement)
+        service.save_to_object()
+        return service.render_to_response()
+
+class StockIssueVoucherEmailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        movement = get_object_or_404(StockMovement, pk=pk, movement_type='OUT')
+        # Email to recipient? Could be the requesting user or project manager.
+        # For now, we'll email the user who created the movement.
+        recipient = movement.created_by.email
+        if not recipient:
+            messages.error(request, "No email address available.")
+            return redirect('inventory:movement-list')
+        service = StockIssueVoucherPDFService(movement)
+        try:
+            service.email(
+                recipient=recipient,
+                subject=f"Stock Issue Voucher {movement.reference or movement.pk}",
+                message="Please find attached the stock issue voucher."
+            )
+            messages.success(request, f"Voucher sent to {recipient}")
+        except Exception as e:
+            messages.error(request, f"Failed to send: {e}")
+        return redirect('inventory:movement-list')
 
 
 class StockTransferView(WMSPermissionMixin, FormView):

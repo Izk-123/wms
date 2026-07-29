@@ -1,6 +1,7 @@
+# finance/views.py
 from decimal import Decimal, InvalidOperation
 
-from django.views.generic import ListView, CreateView, DetailView, UpdateView, View, TemplateView
+from django.views.generic import ListView, CreateView, DetailView, UpdateView, View, TemplateView, FormView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
@@ -8,6 +9,7 @@ from django.urls import reverse_lazy
 from django.core.exceptions import ValidationError
 from django.db.models import Sum
 from django.utils import timezone
+from django.http import HttpResponse
 
 from company_settings.models import ApprovalRequest
 from company_settings.services import (
@@ -18,20 +20,28 @@ from core.mixins import WMSPermissionMixin
 from accounts.views import log_activity
 from hr.models import Department
 from sales.models import Payment
+from sales.models import Invoice, InvoiceItem  # for receipt context
+
 from .models import (
-    Account, BankAccount, BankStatement, BankTransaction, Budget, FinanceAuditLog, FiscalPeriod, JournalEntry, Expense, CashDrawer, CashTransaction, SupplierBill,
+    Account, BankAccount, BankStatement, BankTransaction, Budget, FinanceAuditLog,
+    FiscalPeriod, JournalEntry, Expense, CashDrawer, CashTransaction, SupplierBill,
 )
 from .forms import (
-    AccountForm, BankReconciliationForm, BankStatementUploadForm, BudgetForm, ExpenseForm, FiscalPeriodForm, SupplierBillForm, OpenDrawerForm, CloseDrawerForm,
+    AccountForm, BankReconciliationForm, BankStatementUploadForm, BudgetForm,
+    ExpenseForm, FiscalPeriodForm, SupplierBillForm, OpenDrawerForm, CloseDrawerForm,
 )
 from .services import (
     close_fiscal_period, create_expense_journal_entry, create_supplier_bill_journal_entry,
-    create_supplier_payment_journal_entry, finalize_reconciliation, get_actual_expenses, import_bank_statements, match_bank_transaction, open_cash_drawer, close_cash_drawer,
+    create_supplier_payment_journal_entry, finalize_reconciliation, get_actual_expenses,
+    import_bank_statements, match_bank_transaction, open_cash_drawer, close_cash_drawer,
     record_cash_payment, log_finance_audit, snapshot,
 )
 
+# ─── Document Services ──────────────────────────────────────────
+from documents.services.receipt import ReceiptPDFService
 
-# ─── Account Views ──────────────────────────────────────
+
+# ─── Account Views ──────────────────────────────────────────────
 
 class AccountListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_account'
@@ -56,7 +66,7 @@ class AccountUpdateView(WMSPermissionMixin, UpdateView):
     success_url = reverse_lazy('finance:account-list')
 
 
-# ─── Journal Entry Views (read‑only) ────────────────────
+# ─── Journal Entry Views ────────────────────────────────────────
 
 class JournalEntryListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_journalentry'
@@ -67,7 +77,7 @@ class JournalEntryListView(WMSPermissionMixin, ListView):
     ordering = ['-entry_date']
 
 
-# ─── Expense Views ──────────────────────────────────────
+# ─── Expense Views ──────────────────────────────────────────────
 
 class ExpenseListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_expense'
@@ -120,6 +130,8 @@ class ExpenseCreateView(WMSPermissionMixin, CreateView):
             return redirect('finance:expense-list')
         expense.status = 'approved'
         expense.save()
+        # If auto-approved, create journal entry immediately
+        create_expense_journal_entry(expense)
         log_activity(
             self.request.user,
             f"Created expense {expense.reference}",
@@ -214,7 +226,6 @@ class ExpensePayView(WMSPermissionMixin, View):
         before = snapshot(expense)
         expense.status = 'paid'
         expense.paid_by = request.user
-        # ✅ FIX: default to uppercase 'CASH'
         expense.payment_method = request.POST.get('payment_method', 'CASH')
         expense.save()
 
@@ -229,7 +240,6 @@ class ExpensePayView(WMSPermissionMixin, View):
             before=before, request=request
         )
 
-        # If a cash drawer is open for this user and paid via cash, record the outflow
         if expense.payment_method == 'CASH':
             drawer = CashDrawer.objects.filter(cashier=request.user, status='open').first()
             if drawer:
@@ -246,7 +256,7 @@ class ExpensePayView(WMSPermissionMixin, View):
         return redirect('finance:expense-detail', pk=pk)
 
 
-# ─── Cashier Workspace ──────────────────────────────────
+# ─── Cashier Workspace ──────────────────────────────────────────
 
 class CashierDashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'finance/cashier_dashboard.html'
@@ -341,7 +351,7 @@ class CloseDrawerView(WMSPermissionMixin, View):
         return redirect('finance:cashier-dashboard')
 
 
-# ─── Accounts Payable / Supplier Bill Views ─────────────
+# ─── Accounts Payable / Supplier Bill Views ─────────────────────
 
 class SupplierBillListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_supplierbill'
@@ -535,7 +545,45 @@ class SupplierBillPayView(WMSPermissionMixin, View):
         messages.success(request, "Payment recorded.")
         return redirect('finance:supplier-bill-detail', pk=pk)
 
-# ─── Bank Reconciliation Views ────────────────────────────────────
+
+# ─── Receipt PDF Views ──────────────────────────────────────────
+
+class ReceiptPDFView(LoginRequiredMixin, View):
+    """Generate PDF receipt. Serve stored if exists, otherwise generate and save."""
+    def get(self, request, payment_pk):
+        payment = get_object_or_404(Payment, pk=payment_pk)
+        if payment.receipt_pdf and payment.receipt_pdf.storage.exists(payment.receipt_pdf.name):
+            response = HttpResponse(payment.receipt_pdf.read(), content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="{payment.receipt_pdf.name}"'
+            return response
+        service = ReceiptPDFService(payment)
+        service.save_to_object()
+        return service.render_to_response()
+
+
+class ReceiptEmailView(LoginRequiredMixin, View):
+    """Email the receipt PDF to the customer."""
+    def get(self, request, payment_pk):
+        payment = get_object_or_404(Payment, pk=payment_pk)
+        customer_email = payment.invoice.customer.email
+        if not customer_email:
+            messages.error(request, "Customer has no email address.")
+            return redirect('sales:invoice-detail', pk=payment.invoice.pk)
+
+        service = ReceiptPDFService(payment)
+        try:
+            service.email(
+                recipient=customer_email,
+                subject=f"Receipt {payment.receipt_number}",
+                message="Thank you for your payment. Please find your receipt attached."
+            )
+            messages.success(request, f"Receipt sent to {customer_email}")
+        except Exception as e:
+            messages.error(request, f"Failed to send email: {str(e)}")
+        return redirect('sales:invoice-detail', pk=payment.invoice.pk)
+
+
+# ─── Bank Reconciliation Views ──────────────────────────────────
 
 class BankAccountListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_bankaccount'
@@ -613,7 +661,7 @@ class ImportBankStatementView(WMSPermissionMixin, View):
         return redirect('finance:bank-account-list')
 
 
-# ─── Budget Views ──────────────────────────────────────────────────
+# ─── Budget Views ────────────────────────────────────────────────
 
 class BudgetListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_budget'
@@ -654,7 +702,6 @@ class BudgetVsActualView(WMSPermissionMixin, TemplateView):
         report = []
         for budget in budgets:
             actual = get_actual_expenses(budget.department, year)
-            # If you have budget lines, you could break down by category.
             variance = budget.amount - actual
             report.append({
                 'department': budget.department.name if budget.department else 'General',
@@ -671,7 +718,7 @@ class BudgetVsActualView(WMSPermissionMixin, TemplateView):
         return ctx
 
 
-# ─── Fiscal Period Views ───────────────────────────────────────────
+# ─── Fiscal Period Views ────────────────────────────────────────
 
 class FiscalPeriodListView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_fiscalperiod'
@@ -701,7 +748,7 @@ class ClosePeriodView(WMSPermissionMixin, View):
         return redirect('finance:period-list')
 
 
-# ─── Audit Log View (already exists in models but we expose it) ──
+# ─── Audit Log View ─────────────────────────────────────────────
 
 class AuditLogView(WMSPermissionMixin, ListView):
     permission_required = 'finance.view_auditlog'

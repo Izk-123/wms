@@ -197,6 +197,12 @@ class StockMovement(models.Model):
         related_name='stock_movements'
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    pdf_file = models.FileField(
+        upload_to='pdfs/stock_issues/',
+        blank=True,
+        null=True,
+        help_text="Stored Stock Issue Voucher for audit"
+    )
 
     class Meta:
         ordering = ['-created_at']
