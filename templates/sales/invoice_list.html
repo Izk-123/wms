@@ -4,7 +4,13 @@
 
 {% block content %}
 
-{% include 'inventory/_card_header.html' with page_title="Invoices" page_subtitle="Track your invoices" add_url=None add_label=None %}
+{# ── Header without "New Invoice" button ── #}
+<div class="d-flex align-items-center justify-content-between mb-4 fade-in">
+    <div>
+        <h5 class="fw-semibold mb-0 text-primary-wms">Invoices</h5>
+        <p class="text-secondary-wms mb-0" style="font-size:0.85rem;">All invoices (automatically generated from sales orders)</p>
+    </div>
+</div>
 
 {# ── Filter Bar ────────────────────────────────────────── #}
 <div class="filter-bar">
@@ -65,10 +71,10 @@
                             {{ inv.get_status_display }}
                         </span>
                     </td>
-                    <td>MWK {{ inv.total_amount|floatformat:2 }}</td>
-                    <td>MWK {{ inv.paid_amount|floatformat:2 }}</td>
+                    <td>{{ currency_symbol }} {{ inv.total_amount|floatformat:2 }}</td>
+                    <td>{{ currency_symbol }} {{ inv.paid_amount|floatformat:2 }}</td>
                     <td class="{% if inv.balance_due > 0 %}text-danger fw-semibold{% endif %}">
-                        MWK {{ inv.balance_due|floatformat:2 }}
+                        {{ currency_symbol }} {{ inv.balance_due|floatformat:2 }}
                     </td>
                     <td>
                         <a href="{% url 'sales:invoice-detail' inv.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
@@ -82,6 +88,8 @@
                         <div class="empty-state">
                             <span class="material-icons empty-icon">receipt</span>
                             <h6>No invoices found</h6>
+                            <p>Invoices are automatically created when you accept a quotation.</p>
+                            <a href="{% url 'sales:quotation-create' %}" class="text-primary-wms">Create a quotation</a>
                         </div>
                     </td>
                 </tr>

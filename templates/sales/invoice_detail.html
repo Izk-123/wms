@@ -79,7 +79,7 @@
                         <tr><td style="color:var(--text-muted);">Sales Order</td>
                             <td>{% if invoice.sales_order %}<a href="{% url 'sales:order-detail' invoice.sales_order.pk %}" class="text-primary-wms">{{ invoice.sales_order.reference }}</a>{% else %}—{% endif %}</td>
                         </tr>
-                        <tr><td style="color:var(--text-muted);">Created by</td><td>{{ invoice.created_by.get_full_name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Created by</td><td>{{ invoice.created_by.get_full_name|default:invoice.created_by.username }}</td></tr>
                         <tr><td style="color:var(--text-muted);">Created</td><td>{{ invoice.created_at|date:"d M Y H:i" }}</td></tr>
                     </tbody>
                 </table>
@@ -99,7 +99,8 @@
                     <div>
                         <div><strong>{{ payment.receipt_number }}</strong></div>
                         <div style="font-size:.78rem;color:var(--text-muted);">
-                            {{ payment.payment_date|date:"d M Y H:i" }} &middot; {{ payment.get_payment_method_display }}
+                            {{ payment.payment_date|date:"d M Y H:i" }} &middot; {{ payment.get_payment_method_display }}<br>
+                            <span class="text-muted-wms">Received by: {{ payment.received_by.get_full_name|default:payment.received_by.username }}</span>
                         </div>
                     </div>
                     <div class="d-flex gap-2">
@@ -185,7 +186,7 @@
                                     <span class="material-icons" style="font-size:14px;">receipt</span>
                                 </a>
                             </td>
-                            <td>{{ payment.received_by.get_full_name }}</td>
+                            <td>{{ payment.received_by.get_full_name|default:payment.received_by.username }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>

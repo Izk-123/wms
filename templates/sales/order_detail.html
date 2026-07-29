@@ -19,13 +19,6 @@
     </div>
     <div class="ms-auto d-flex gap-2 flex-wrap">
 
-        {# ── Edit (only if draft) ── #}
-        {% if order.status == 'draft' %}
-        <a href="{% url 'sales:order-update' order.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;">
-            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">edit</span> Edit
-        </a>
-        {% endif %}
-
         {# ── Print ── #}
         <a href="{% url 'sales:order-print' order.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">print</span> Print
@@ -38,21 +31,7 @@
         </a>
         {% endif %}
 
-        {# ── Approve Discount (if pending) ── #}
-        {% if order.status == 'pending_approval' and perms.sales.approve_discount %}
-        <button class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;" data-bs-toggle="modal" data-bs-target="#approveModal">
-            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">check_circle</span> Approve Discount
-        </button>
-        {% endif %}
-
-        {# ── Create Invoice (if approved and no invoice yet) ── #}
-        {% if order.status == 'approved' and not order.invoices.exists %}
-        <a href="{% url 'sales:invoice-create-from-order' order.pk %}" class="btn-wms-primary" style="background:#22c55e;font-size:.9rem;padding:.5rem 1.2rem;">
-            <span class="material-icons me-1" style="font-size:20px;vertical-align:middle;">receipt</span> Create Invoice
-        </a>
-        {% endif %}
-
-        {# ── Link to existing invoices ── #}
+        {# ── Link to invoice if exists ── #}
         {% if order.invoices.exists %}
         <a href="{% url 'sales:invoice-detail' order.invoices.first.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">receipt</span> View Invoice
@@ -61,48 +40,6 @@
 
     </div>
 </div>
-
-{# ── Approval Modal ── #}
-{% if order.status == 'pending_approval' %}
-<div class="modal fade" id="approveModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-wms">
-                <h6 class="modal-title text-primary-wms">Approve Discount</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p><strong>Order:</strong> {{ order.reference }}</p>
-                <p><strong>Discount:</strong> {{ currency_symbol }} {{ order.discount_amount|floatformat:2 }}</p>
-                <p class="text-secondary-wms">Do you approve this discount?</p>
-            </div>
-            <div class="modal-footer border-wms">
-                <button type="button" class="btn-wms-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form method="post" action="{% url 'sales:approve-discount' order.pk %}" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="approve">
-                    <button type="submit" class="btn-wms-primary" style="background:#22c55e;">Approve</button>
-                </form>
-                <form method="post" action="{% url 'sales:approve-discount' order.pk %}" style="display:inline;">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="reject">
-                    <button type="submit" class="btn-wms-primary" style="background:#ef4444;">Reject</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{# ── Helpful message for invoicing ── #}
-{% if order.status == 'approved' and not order.invoices.exists %}
-<div class="wms-alert wms-alert-info mb-3" style="font-size:.9rem;">
-    <span class="material-icons" style="font-size:20px;">info</span>
-    <div>
-        <strong>Ready to invoice!</strong> Click the green <strong>Create Invoice</strong> button above to generate an invoice.
-    </div>
-</div>
-{% endif %}
 
 <div class="row g-3 fade-in">
     <div class="col-12 col-lg-4">
@@ -180,40 +117,6 @@
                 </table>
             </div>
         </div>
-
-        {% if order.invoices.exists %}
-        <div class="wms-card mt-3">
-            <div class="wms-card-header">
-                <h6>Invoices</h6>
-            </div>
-            <div class="table-responsive">
-                <table class="wms-table">
-                    <thead>
-                        <tr>
-                            <th>Invoice #</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Total</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for inv in order.invoices.all %}
-                        <tr>
-                            <td class="fw-semibold">{{ inv.reference }}</td>
-                            <td>{{ inv.invoice_date|date:"d M Y" }}</td>
-                            <td><span class="wms-badge {% if inv.status == 'paid' %}badge-success{% else %}badge-warning{% endif %}">{{ inv.get_status_display }}</span></td>
-                            <td>{{ currency_symbol }} {{ inv.total_amount|floatformat:2 }}</td>
-                            <td>
-                                <a href="{% url 'sales:invoice-detail' inv.pk %}" class="btn-wms-secondary" style="padding:.15rem .5rem;">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        {% endif %}
     </div>
 </div>
 
