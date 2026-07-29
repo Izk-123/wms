@@ -12,17 +12,39 @@
         <h5 class="fw-semibold mb-0 text-primary-wms">{{ invoice.reference }}</h5>
         <p class="text-secondary-wms mb-0" style="font-size:.82rem;">
             {{ invoice.customer.name }} &middot; {{ invoice.invoice_date|date:"d M Y" }}
+            {% if invoice.sales_order %}
+            <span class="text-muted-wms">(from {{ invoice.sales_order.reference }})</span>
+            {% endif %}
         </p>
     </div>
     <div class="ms-auto d-flex gap-2 flex-wrap">
+
+        {# ── Record Payment (if not paid/cancelled) ── #}
         {% if invoice.status != 'paid' and invoice.status != 'cancelled' %}
         <a href="{% url 'sales:payment-create' invoice.pk %}" class="btn-wms-primary" style="background:#22c55e;font-size:.78rem;padding:.3rem .8rem;">
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">payments</span> Record Payment
         </a>
         {% endif %}
-        <a href="{% url 'sales:invoice-print' invoice.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
+
+        {# ── Print ── #}
+        <a href="{% url 'sales:invoice-print' invoice.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
             <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">print</span> Print
         </a>
+
+        {# ── Email (if customer has email) ── #}
+        {% if invoice.customer.email %}
+        <a href="{% url 'sales:invoice-email' invoice.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">email</span> Email
+        </a>
+        {% endif %}
+
+        {# ── Link to Sales Order (if exists) ── #}
+        {% if invoice.sales_order %}
+        <a href="{% url 'sales:order-detail' invoice.sales_order.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">shopping_cart</span> View Order
+        </a>
+        {% endif %}
+
     </div>
 </div>
 
@@ -46,15 +68,19 @@
                                 </span>
                             </td>
                         </tr>
-                        <tr><td style="color:var(--text-muted);">Total</td><td class="fw-bold">MWK {{ invoice.total_amount|floatformat:2 }}</td></tr>
-                        <tr><td style="color:var(--text-muted);">Paid</td><td>MWK {{ invoice.paid_amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Total</td><td class="fw-bold">{{ currency_symbol }} {{ invoice.total_amount|floatformat:2 }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Paid</td><td>{{ currency_symbol }} {{ invoice.paid_amount|floatformat:2 }}</td></tr>
                         <tr><td style="color:var(--text-muted);"><strong>Balance Due</strong></td>
                             <td class="fw-bold {% if invoice.balance_due > 0 %}text-danger{% endif %}">
-                                MWK {{ invoice.balance_due|floatformat:2 }}
+                                {{ currency_symbol }} {{ invoice.balance_due|floatformat:2 }}
                             </td>
                         </tr>
                         <tr><td style="color:var(--text-muted);">Due Date</td><td>{{ invoice.due_date|date:"d M Y" }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Sales Order</td>
+                            <td>{% if invoice.sales_order %}<a href="{% url 'sales:order-detail' invoice.sales_order.pk %}" class="text-primary-wms">{{ invoice.sales_order.reference }}</a>{% else %}—{% endif %}</td>
+                        </tr>
                         <tr><td style="color:var(--text-muted);">Created by</td><td>{{ invoice.created_by.get_full_name }}</td></tr>
+                        <tr><td style="color:var(--text-muted);">Created</td><td>{{ invoice.created_at|date:"d M Y H:i" }}</td></tr>
                     </tbody>
                 </table>
                 {% if invoice.notes %}
@@ -62,6 +88,35 @@
                 {% endif %}
             </div>
         </div>
+
+        {# ── Receipts ── #}
+        {% if invoice.payments.exists %}
+        <div class="wms-card mt-3">
+            <div class="wms-card-body">
+                <h6 class="fw-semibold text-primary-wms">Receipts</h6>
+                {% for payment in invoice.payments.all %}
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-wms">
+                    <div>
+                        <div><strong>{{ payment.receipt_number }}</strong></div>
+                        <div style="font-size:.78rem;color:var(--text-muted);">
+                            {{ payment.payment_date|date:"d M Y H:i" }} &middot; {{ payment.get_payment_method_display }}
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'finance:receipt-print' payment.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;font-size:.7rem;" target="_blank" title="Print Receipt">
+                            <span class="material-icons" style="font-size:16px;">print</span>
+                        </a>
+                        {% if invoice.customer.email %}
+                        <a href="{% url 'finance:receipt-email' payment.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;font-size:.7rem;" title="Email Receipt">
+                            <span class="material-icons" style="font-size:16px;">email</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="col-12 col-lg-8">
@@ -84,8 +139,16 @@
                         <tr>
                             <td>{{ item.item.name }}</td>
                             <td>{{ item.quantity }} {{ item.item.unit.symbol }}</td>
-                            <td>MWK {{ item.unit_price|floatformat:2 }}</td>
-                            <td class="fw-semibold">MWK {{ item.total|floatformat:2 }}</td>
+                            <td>{{ currency_symbol }} {{ item.unit_price|floatformat:2 }}</td>
+                            <td class="fw-semibold">{{ currency_symbol }} {{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">
+                                <div class="empty-state" style="padding:1.5rem;">
+                                    <p style="margin:0;">No items on this invoice.</p>
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -106,6 +169,7 @@
                             <th>Amount</th>
                             <th>Method</th>
                             <th>Reference</th>
+                            <th>Receipt</th>
                             <th>Received By</th>
                         </tr>
                     </thead>
@@ -113,9 +177,14 @@
                         {% for payment in invoice.payments.all %}
                         <tr>
                             <td>{{ payment.payment_date|date:"d M Y H:i" }}</td>
-                            <td class="fw-semibold text-success">MWK {{ payment.amount|floatformat:2 }}</td>
+                            <td class="fw-semibold text-success">{{ currency_symbol }} {{ payment.amount|floatformat:2 }}</td>
                             <td>{{ payment.get_payment_method_display }}</td>
                             <td>{{ payment.reference|default:"—" }}</td>
+                            <td>
+                                <a href="{% url 'finance:receipt-print' payment.pk %}" class="btn-wms-secondary" style="padding:.1rem .4rem;font-size:.7rem;" target="_blank">
+                                    <span class="material-icons" style="font-size:14px;">receipt</span>
+                                </a>
+                            </td>
                             <td>{{ payment.received_by.get_full_name }}</td>
                         </tr>
                         {% endfor %}

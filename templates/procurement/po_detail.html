@@ -30,6 +30,14 @@
             Receive Goods
         </a>
         {% endif %}
+        <a href="{% url 'procurement:po-print' po.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">print</span> Print
+        </a>
+        {% if po.supplier.email %}
+        <a href="{% url 'procurement:po-email' po.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+            <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">email</span> Email
+        </a>
+        {% endif %}
     </div>
 </div>
 

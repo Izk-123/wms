@@ -36,6 +36,17 @@
     {% endif %}
 </div>
 
+<div class="ms-auto d-flex gap-2 flex-wrap">
+    <a href="{% url 'procurement:grn-print' grn.pk %}" class="btn-wms-primary" style="font-size:.78rem;padding:.3rem .8rem;" target="_blank">
+        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">print</span> Print
+    </a>
+    {% if grn.purchase_order.supplier.email %}
+    <a href="{% url 'procurement:grn-email' grn.pk %}" class="btn-wms-secondary" style="font-size:.78rem;padding:.3rem .8rem;">
+        <span class="material-icons me-1" style="font-size:16px;vertical-align:middle;">email</span> Email
+    </a>
+    {% endif %}
+</div>
+
 {% if grn.status == "draft" %}
 <div class="wms-alert wms-alert-warning d-flex align-items-center gap-2 mb-3" style="font-size:.875rem;">
     <span class="material-icons" style="font-size:18px;">warning</span>

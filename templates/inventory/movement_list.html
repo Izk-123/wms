@@ -67,6 +67,7 @@
                     <th>Reference</th>
                     <th>By</th>
                     <th>Date</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -91,6 +92,22 @@
                     <td>{{ movement.reference|default:"—" }}</td>
                     <td>{{ movement.created_by.username }}</td>
                     <td style="color:var(--text-muted);">{{ movement.created_at|date:"d M Y H:i" }}</td>
+                    <!-- In movement_list.html, inside the table -->
+                    <td>
+                        <div class="d-flex gap-1">
+                            <!-- <a href="{% url 'inventory:movement-detail' movement.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="View">
+                                <span class="material-icons" style="font-size:16px;">visibility</span>
+                            </a> -->
+                            {% if movement.movement_type == 'OUT' %}
+                            <a href="{% url 'inventory:movement-print' movement.pk %}" class="btn-wms-primary" style="padding:.2rem .5rem;" title="Print Voucher" target="_blank">
+                                <span class="material-icons" style="font-size:16px;">print</span>
+                            </a>
+                            <a href="{% url 'inventory:movement-email' movement.pk %}" class="btn-wms-secondary" style="padding:.2rem .5rem;" title="Email Voucher">
+                                <span class="material-icons" style="font-size:16px;">email</span>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

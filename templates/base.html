@@ -1010,7 +1010,7 @@
         {% endif %}
 
         <!-- Sales -->
-        {% if perms.sales.view_customer or perms.sales.view_salesorder or perms.sales.view_invoice %}
+        {% if perms.sales.view_customer or perms.sales.view_salesorder or perms.sales.view_invoice or perms.sales.view_quotation %}
         <div class="nav-heading">Sales</div>
         {% endif %}
 
@@ -1036,17 +1036,7 @@
         </div>
         {% endif %}
 
-        {# ─── Ready to Invoice ─────────────────────────── #}
-        {% if perms.sales.view_salesorder %}
-        <div class="nav-item">
-            <a href="{% url 'sales:ready-to-invoice' %}"
-               class="{% if 'sales/ready-to-invoice' in request.path %}active{% endif %}"
-               title="Ready to Invoice">
-                <span class="material-icons nav-icon" style="color:#22c55e;">receipt</span>
-                <span class="nav-label" style="color:#22c55e;">Ready to Invoice</span>
-            </a>
-        </div>
-        {% endif %}
+        <!-- Ready to Invoice link REMOVED -->
 
         {% if perms.sales.view_invoice %}
         <div class="nav-item">
@@ -1059,9 +1049,18 @@
         </div>
         {% endif %}
 
-        <!-- ============================================ -->
-        <!-- FINANCE SECTION (UPDATED WITH NEW LINKS)     -->
-        <!-- ============================================ -->
+        {% if perms.sales.view_quotation %}
+        <div class="nav-item">
+            <a href="{% url 'sales:quotation-list' %}"
+               class="{% if 'sales/quotations' in request.path %}active{% endif %}"
+               title="Quotations">
+                <span class="material-icons nav-icon">description</span>
+                <span class="nav-label">Quotations</span>
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Finance -->
         {% if perms.finance.view_account or perms.finance.view_journalentry or perms.finance.view_expense or perms.finance.manage_cash_drawer or perms.finance.view_bankaccount or perms.finance.view_budget or perms.finance.view_fiscalperiod or perms.finance.view_auditlog %}
         <div class="nav-heading">Finance</div>
         {% endif %}
@@ -1114,7 +1113,7 @@
         </div>
         {% endif %}
 
-        {# ─── Bank Accounts (NEW) ───────────────────────── #}
+        {# ─── Bank Accounts ───────────────────────────── #}
         {% if perms.finance.view_bankaccount %}
         <div class="nav-item">
             <a href="{% url 'finance:bank-account-list' %}"
@@ -1126,7 +1125,7 @@
         </div>
         {% endif %}
 
-        {# ─── Budgets (NEW) ─────────────────────────────── #}
+        {# ─── Budgets ──────────────────────────────────── #}
         {% if perms.finance.view_budget %}
         <div class="nav-item">
             <a href="{% url 'finance:budget-list' %}"
@@ -1138,7 +1137,7 @@
         </div>
         {% endif %}
 
-        {# ─── Fiscal Periods (NEW) ──────────────────────── #}
+        {# ─── Fiscal Periods ───────────────────────────── #}
         {% if perms.finance.view_fiscalperiod %}
         <div class="nav-item">
             <a href="{% url 'finance:period-list' %}"
@@ -1150,7 +1149,7 @@
         </div>
         {% endif %}
 
-        {# ─── Audit Log (NEW) ───────────────────────────── #}
+        {# ─── Audit Log ────────────────────────────────── #}
         {% if perms.finance.view_auditlog %}
         <div class="nav-item">
             <a href="{% url 'finance:audit-log' %}"
@@ -1290,7 +1289,7 @@
         </div>
         {% endif %}
 
-        {# ─── Finance Reports (visible to finance users) ─── #}
+        {# ─── Finance Reports ─── #}
         {% if perms.finance.view_expense or perms.finance.view_account %}
         <div class="nav-item">
             <a href="{% url 'reports:income-statement' %}"
