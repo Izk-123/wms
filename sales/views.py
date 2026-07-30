@@ -307,6 +307,26 @@ class SalesOrderPDFView(LoginRequiredMixin, View):
         service = SalesOrderPDFService(order)
         service.save_to_object()
         return service.render_to_response()
+    
+# sales/views.py – add this class (anywhere after imports)
+
+class SalesOrderEmailView(LoginRequiredMixin, View):
+    def get(self, request, pk):
+        order = get_object_or_404(SalesOrder, pk=pk)
+        if not order.customer.email:
+            messages.error(request, "Customer has no email address.")
+            return redirect('sales:order-detail', pk=pk)
+        service = SalesOrderPDFService(order)
+        try:
+            service.email(
+                recipient=order.customer.email,
+                subject=f"Sales Order {order.reference}",
+                message="Please find attached your sales order."
+            )
+            messages.success(request, f"Sales Order sent to {order.customer.email}")
+        except Exception as e:
+            messages.error(request, f"Failed to send: {e}")
+        return redirect('sales:order-detail', pk=pk)
 
 
 # ─── Invoice Views ──────────────────────────────────────
