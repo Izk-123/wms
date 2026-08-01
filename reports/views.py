@@ -41,12 +41,21 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'currency_symbol': get_setting('CURRENCY_SYMBOL', 'MK'),
         })
 
+        # Determine if sales stats should be shown
+        # Cashiers and Sales Representatives should NOT see sales stats
+        role_name = user.role.name if user.role else None
+        show_sales_stats = (
+            (user.has_perm('sales.view_invoice') or user.has_perm('sales.view_salesorder'))
+            and role_name not in ['Cashier', 'Sales Representative']
+        )
+        ctx['show_sales_stats'] = show_sales_stats
+
         # ─── Inventory Stats ────────────────────────────────
         if user.has_perm('inventory.view_stock_report') or user.has_perm('inventory.view_item'):
             ctx.update(self._get_inventory_stats(today))
 
-        # ─── Sales Stats ────────────────────────────────────
-        if user.has_perm('sales.view_invoice') or user.has_perm('sales.view_salesorder'):
+        # ─── Sales Stats (only if allowed) ───────────────────
+        if show_sales_stats:
             ctx.update(self._get_sales_stats(today))
 
         # ─── Finance Stats ──────────────────────────────────
@@ -150,7 +159,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 created_at__date__gte=month_start,
                 created_at__date__lte=today
             ).aggregate(total=Sum('amount'))['total'] or 0,
-            # 👇 FIXED: parentheses around each aggregate expression
             'net_profit': (Payment.objects.filter(
                 payment_date__date__gte=month_start,
                 payment_date__date__lte=today

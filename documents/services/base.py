@@ -7,7 +7,7 @@ from django.core.mail import EmailMessage
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, HRFlowable, Table, TableStyle
 from .branding import get_company_data, get_document_styles
 from .qr_code import generate_qr_image
 from company_settings.services import get_setting
@@ -38,33 +38,116 @@ class BasePDFService(ABC):
     # Builders
     # ------------------------------------------------------------
     def _build_header(self, story):
-        """Add company header (logo, name, address, contact)."""
-        # Logo
-        if self.company_data['logo_path']:
-            try:
-                logo = Image(self.company_data['logo_path'], width=3*cm, height=1.8*cm)
-                story.append(logo)
-            except Exception:
-                pass  # Silently ignore missing logo
+        """
+        Build professional header with:
+        - Logo on the right
+        - Company name and contact on the left
+        - Customer details on the right
+        - Document title and metadata
+        """
+        company = self.company_data
+        obj = self.object
 
-        story.append(Paragraph(self.company_data['name'], self.styles['CompanyTitle']))
-        story.append(Paragraph(self.company_data['address'], self.styles['Normal']))
-        story.append(Paragraph(
-            f"Tel: {self.company_data['phone']} | Email: {self.company_data['email']}",
-            self.styles['Normal']
-        ))
+        # ─── TOP SECTION: Company Logo + Info ──────────────────────
+        # Left column: Company info
+        left_content = [
+            Paragraph(company['name'], self.styles['CompanyTitle']),
+            Paragraph(company['address'], self.styles['Normal']),
+        ]
+
+        # Right column: Logo (if exists)
+        right_content = []
+        if company['logo_path']:
+            try:
+                logo = Image(company['logo_path'], width=4.5*cm, height=3*cm)
+                right_content.append(logo)
+            except Exception:
+                pass
+
+        # Build header table
+        header_data = [[
+            left_content,
+            right_content
+        ]]
+        header_table = Table(header_data, colWidths=[12*cm, 6*cm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('ALIGN', (1,0), (1,0), 'RIGHT'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+        ]))
+        story.append(header_table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # ─── DIVIDER LINE ───────────────────────────────────────────
+        story.append(HRFlowable(width="100%", thickness=1.5, color=colors.HexColor('#1E293B')))
         story.append(Spacer(1, 0.3*cm))
+
+        # ─── DOCUMENT TITLE ─────────────────────────────────────────
+        story.append(Paragraph(self.document_type.upper(), self.styles['DocTitle']))
+        story.append(Spacer(1, 0.3*cm))
+
+        # ─── DOCUMENT METADATA (Reference, Date, etc.) ─────────────
+        # Left: Document info, Right: Customer info
+        doc_info = self._get_document_info()
+        customer_info = self._get_customer_info()
+
+        info_table_data = [[
+            doc_info,
+            customer_info
+        ]]
+        info_table = Table(info_table_data, colWidths=[9*cm, 9*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
         return story
 
+    def _get_document_info(self):
+        """Override in subclasses to return document-specific info."""
+        return []
+
+    def _get_customer_info(self):
+        """Override in subclasses to return customer-specific info."""
+        return []
+
     def _build_footer(self, story):
-        """Add footer (thank you message, QR code)."""
+        """Add footer with contact details and QR code."""
+        company = self.company_data
+
         story.append(Spacer(1, 0.5*cm))
         story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#E2E8F0')))
 
-        # Thank you
-        story.append(Paragraph("Thank you for your business!", self.styles['Normal']))
+        # ─── FOOTER MESSAGE (updated) ──────────────────────────────
+        story.append(Paragraph("NB: This is not a taxed receipt.", self.styles['Normal']))
+        story.append(Spacer(1, 0.3*cm))
 
-        # QR code with document metadata
+        # ─── TERMS AND CONDITIONS ────────────────────────────────────
+        story.append(Paragraph("TERMS AND CONDITIONS", self.styles['CompanyHeading']))
+        story.append(Paragraph("Payment is due within 14 days of project completion.", self.styles['Normal']))
+        story.append(Paragraph("All checks to be made out to the company name above.", self.styles['Normal']))
+        story.append(Spacer(1, 0.3*cm))
+
+        # ─── FOOTER WITH CONTACT & QR ──────────────────────────────
+        footer_data = [[
+            Paragraph(f"Tel: {company['phone']}", self.styles['Normal']),
+            Paragraph(f"Email: {company['email']}", self.styles['Normal']),
+            Paragraph(f"Web: {company.get('website', 'www.jandn.mw')}", self.styles['Normal']),
+        ]]
+        footer_table = Table(footer_data, colWidths=[5*cm, 5*cm, 5*cm])
+        footer_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('LEFTPADDING', (0,0), (-1,-1), 0),
+            ('RIGHTPADDING', (0,0), (-1,-1), 0),
+        ]))
+        story.append(footer_table)
+
+        # ─── QR Code (bottom right) ──────────────────────────────────
         qr_data = {
             'doc_type': self.document_type,
             'reference': self.object.reference,
@@ -74,8 +157,10 @@ class BasePDFService(ABC):
                        getattr(self.object, 'payment_date', None) or
                        '')
         }
-        qr_img = generate_qr_image(qr_data)
+        qr_img = generate_qr_image(qr_data, width=2.5*cm, height=2.5*cm)
+        story.append(Spacer(1, 0.3*cm))
         story.append(qr_img)
+
         return story
 
     @abstractmethod

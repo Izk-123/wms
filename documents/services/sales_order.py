@@ -1,5 +1,4 @@
 # documents/services/sales_order.py
-
 from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
@@ -8,53 +7,97 @@ from .base import BasePDFService
 class SalesOrderPDFService(BasePDFService):
     document_type = 'sales_order'
 
+    def _get_document_info(self):
+        """Return sales order-specific document info (left column)."""
+        obj = self.object
+        info = [
+            Paragraph(f"Order #: {obj.reference}", self.styles['Normal']),
+            Paragraph(f"Order Date: {obj.order_date.strftime('%d %B %Y')}", self.styles['Normal']),
+        ]
+        if obj.quotation:
+            info.append(Paragraph(f"Quotation: {obj.quotation.reference}", self.styles['Normal']))
+        return info
+
+    def _get_customer_info(self):
+        """Return customer info (right column)."""
+        obj = self.object
+        return [
+            Paragraph("Customer:", self.styles['CompanyHeading']),
+            Paragraph(obj.customer.name, self.styles['Normal']),
+            Paragraph(obj.customer.address or '', self.styles['Normal']),
+            Paragraph(obj.customer.phone or '', self.styles['Normal']),
+            Paragraph(obj.customer.email or '', self.styles['Normal']),
+        ]
+
     def build_body(self, story):
         obj = self.object
         currency = self.company_data['currency']
 
-        story.append(Paragraph("SALES ORDER", self.styles['CompanyHeading']))
-        story.append(Paragraph(f"Order Number: {obj.reference}", self.styles['Normal']))
-        story.append(Paragraph(f"Date: {obj.order_date.strftime('%d %B %Y')}", self.styles['Normal']))
-        if obj.quotation:
-            story.append(Paragraph(f"Quotation: {obj.quotation.reference}", self.styles['Normal']))
-        story.append(Paragraph(f"Customer: {obj.customer.name}", self.styles['Normal']))
-        story.append(Spacer(1, 0.5*cm))
+        # ─── ITEMS TABLE ─────────────────────────────────────────────
+        data = [['QTY', 'Description', 'Unit Price', 'Amount']]
+        total_amount = 0
 
-        # Items
-        data = [['#', 'Item', 'Qty', 'Unit Price', 'Total']]
         for idx, item in enumerate(obj.items.all(), 1):
+            item_total = item.total
+            total_amount += item_total
             data.append([
-                str(idx),
-                item.item.name,
                 f"{item.quantity} {item.item.unit.symbol}",
-                f"{item.unit_price:.2f}",
-                f"{item.total:.2f}",
+                item.item.name,
+                f"{currency} {item.unit_price:.2f}",
+                f"{currency} {item_total:.2f}",
             ])
-        # Totals
-        subtotal = obj.total_before_discount
-        data.append(['', '', '', 'Subtotal', f"{subtotal:.2f}"])
-        if obj.discount_amount > 0:
-            data.append(['', '', '', 'Discount', f"-{obj.discount_amount:.2f}"])
-        grand_total = subtotal - obj.discount_amount
-        data.append(['', '', '', 'Total', f"{grand_total:.2f}"])
 
-        col_widths = [1*cm, 6*cm, 3*cm, 3*cm, 3*cm]
+        # Add empty rows if needed
+        while len(data) < 6:
+            data.append(['', '', '', ''])
+
+        col_widths = [2.5*cm, 7*cm, 3.5*cm, 3.5*cm]
         table = Table(data, colWidths=col_widths)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.white),
             ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0,0), (-1,0), 10),
+            ('FONTSIZE', (0,0), (-1,0), 9),
             ('ALIGN', (0,0), (-1,0), 'CENTER'),
-            ('GRID', (0,0), (-1,-2), 0.5, colors.HexColor('#E2E8F0')),
-            ('BACKGROUND', (0,1), (-1,-2), colors.white),
-            ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, colors.HexColor('#F8FAFC')]),
-            ('ALIGN', (1,1), (-1,-1), 'LEFT'),
-            ('ALIGN', (2,1), (-1,-1), 'CENTER'),
-            ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#F1F5F9')),
-            ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
-            ('ALIGN', (3,-1), (-1,-1), 'RIGHT'),
+            ('BACKGROUND', (0,1), (-1,-1), colors.white),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#F8FAFC')]),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+            ('ALIGN', (0,1), (-1,-1), 'CENTER'),
+            ('ALIGN', (2,1), (-1,-1), 'RIGHT'),
+            ('ALIGN', (3,1), (-1,-1), 'RIGHT'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+            ('TOPPADDING', (0,0), (-1,-1), 6),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 6),
         ]))
         story.append(table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # ─── TOTALS SECTION ──────────────────────────────────────────
+        subtotal = obj.total_before_discount
+        discount = obj.discount_amount or 0
+        tax = 0
+        grand_total = subtotal - discount
+
+        totals_data = [
+            ['Subtotal', f"{currency} {subtotal:.2f}"],
+            ['Sales Tax (5%)', f"{currency} {tax:.2f}"],
+            ['Discount', f"{currency} {discount:.2f}"],
+            ['Total', f"{currency} {grand_total:.2f}"],
+        ]
+
+        totals_table = Table(totals_data, colWidths=[7*cm, 6.5*cm])
+        totals_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.white),
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('ALIGN', (0,0), (-1,-1), 'RIGHT'),
+            ('ALIGN', (1,0), (1,-1), 'RIGHT'),
+            ('TOPPADDING', (0,0), (-1,-1), 4),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+            ('FONTNAME', (0,-1), (1,-1), 'Helvetica-Bold'),
+            ('BACKGROUND', (0,-1), (1,-1), colors.HexColor('#F1F5F9')),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
+        ]))
+        story.append(totals_table)
 
         return story

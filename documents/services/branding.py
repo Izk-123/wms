@@ -17,28 +17,47 @@ def get_company_data():
 
 def get_document_styles():
     styles = getSampleStyleSheet()
+
+    # Large title for document headers (INVOICE, QUOTATION, etc.)
+    styles.add(ParagraphStyle(
+        name='DocTitle',
+        parent=styles['Title'],
+        fontSize=18,
+        textColor=colors.HexColor('#1E293B'),
+        spaceAfter=8,
+        alignment=1,  # CENTER
+        fontName='Helvetica-Bold',
+    ))
+
     styles.add(ParagraphStyle(
         name='CompanyTitle',
         parent=styles['Title'],
         fontSize=16,
         textColor=colors.HexColor('#1E293B'),
-        spaceAfter=6,
+        spaceAfter=4,
+        alignment=0,  # LEFT
+        fontName='Helvetica-Bold',
     ))
+
     styles.add(ParagraphStyle(
         name='CompanyHeading',
         parent=styles['Heading2'],
-        fontSize=12,
+        fontSize=11,
         textColor=colors.HexColor('#1E293B'),
         spaceAfter=4,
+        fontName='Helvetica-Bold',
     ))
+
     styles.add(ParagraphStyle(
         name='RightAlign',
         parent=styles['Normal'],
-        alignment=2,
+        alignment=2,  # RIGHT
     ))
+
     styles.add(ParagraphStyle(
         name='CenterAlign',
         parent=styles['Normal'],
-        alignment=1,
+        alignment=1,  # CENTER
     ))
+
     return styles
