@@ -7,7 +7,7 @@ from django.core.mail import EmailMessage
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, HRFlowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, HRFlowable, Table, TableStyle
 from .branding import get_company_data, get_document_styles
 from .qr_code import generate_qr_image
 from company_settings.services import get_setting
@@ -29,11 +29,19 @@ class BasePDFService(ABC):
             bottomMargin=1.5*cm,
         )
 
+    # ------------------------------------------------------------
+    # HEADER – Logo on right, company details on left
+    # ------------------------------------------------------------
     def _build_header(self, story):
         company = self.company_data
-        story.append(Paragraph(company['name'], self.styles['CompanyTitle']))
+
+        # ─── Left column: Company details ────────────────────
+        left_content = [
+            Paragraph(company['name'], self.styles['CompanyTitle']),
+        ]
         if company['address']:
-            story.append(Paragraph(company['address'], self.styles['Normal']))
+            left_content.append(Paragraph(company['address'], self.styles['Normal']))
+
         contact_parts = []
         if company['phone']:
             contact_parts.append(f"Tel: {company['phone']}")
@@ -43,18 +51,50 @@ class BasePDFService(ABC):
             contact_parts.append(f"Web: {company['website']}")
         else:
             contact_parts.append("Web: www.jandn.mw")
-        story.append(Paragraph(" | ".join(contact_parts), self.styles['Normal']))
+        left_content.append(Paragraph(" | ".join(contact_parts), self.styles['Normal']))
+
+        # ─── Right column: Logo (if exists) ──────────────────
+        right_content = []
+        if company.get('logo_path'):
+            try:
+                logo = Image(company['logo_path'], width=4*cm, height=2.5*cm)
+                right_content.append(logo)
+            except Exception:
+                pass
+
+        # ─── Build header table ──────────────────────────────
+        header_data = [[
+            left_content,
+            right_content
+        ]]
+        header_table = Table(header_data, colWidths=[12*cm, 6*cm])
+        header_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('ALIGN', (1,0), (1,0), 'RIGHT'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+        ]))
+        story.append(header_table)
         story.append(Spacer(1, 0.3*cm))
+
+        # ─── Document Title ──────────────────────────────────
         story.append(Paragraph(self.document_type.upper(), self.styles['DocTitle']))
         story.append(Spacer(1, 0.3*cm))
+
+        # ─── Divider ──────────────────────────────────────────
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
         story.append(Spacer(1, 0.3*cm))
+
         return story
 
+    # ------------------------------------------------------------
+    # FOOTER – Only "NB: This is not a taxed receipt." + QR code
+    # ------------------------------------------------------------
     def _build_footer(self, story):
         story.append(Spacer(1, 0.5*cm))
         story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#E2E8F0')))
         story.append(Paragraph("NB: This is not a taxed receipt.", self.styles['Normal']))
+
         qr_data = {
             'doc_type': self.document_type,
             'reference': self.object.reference,
@@ -67,12 +107,16 @@ class BasePDFService(ABC):
         qr_img = generate_qr_image(qr_data, width=2.5*cm, height=2.5*cm)
         story.append(Spacer(1, 0.3*cm))
         story.append(qr_img)
+
         return story
 
     @abstractmethod
     def build_body(self, story):
         pass
 
+    # ------------------------------------------------------------
+    # Generation & Output
+    # ------------------------------------------------------------
     def generate(self):
         story = []
         story = self._build_header(story)
