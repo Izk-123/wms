@@ -31,20 +31,27 @@ class SalesOrderPDFService(BasePDFService):
         obj = self.object
         currency = self.company_data['currency']
 
-        # ─── ITEMS TABLE ─────────────────────────────────────────────
-        data = [['QTY', 'Description', 'Unit Price', 'Amount']]
-        total_amount = 0
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
 
-        for idx, item in enumerate(obj.items.all(), 1):
-            item_total = item.total
-            total_amount += item_total
+        data = [['QTY', 'Description', 'Unit Price', 'Amount']]
+        total = 0
+        for item in obj.items.all():
+            total += item.total
             data.append([
                 f"{item.quantity} {item.item.unit.symbol}",
                 item.item.name,
                 f"{currency} {item.unit_price:.2f}",
-                f"{currency} {item_total:.2f}",
+                f"{currency} {item.total:.2f}",
             ])
-
         while len(data) < 6:
             data.append(['', '', '', ''])
 
@@ -69,14 +76,10 @@ class SalesOrderPDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION (Sales Tax removed) ──────────────────────
         subtotal = obj.total_before_discount
         discount = obj.discount_amount or 0
         grand_total = subtotal - discount
-
-        totals_data = [
-            ['Subtotal', f"{currency} {subtotal:.2f}"],
-        ]
+        totals_data = [['Subtotal', f"{currency} {subtotal:.2f}"]]
         if discount > 0:
             totals_data.append(['Discount', f"{currency} {discount:.2f}"])
         totals_data.append(['Total', f"{currency} {grand_total:.2f}"])

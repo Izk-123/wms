@@ -8,17 +8,19 @@ class QuotationPDFService(BasePDFService):
     document_type = 'quotation'
 
     def _get_document_info(self):
+        """Quote details (left column)."""
         obj = self.object
         return [
-            Paragraph(f"Quote #: {obj.reference}", self.styles['Normal']),
-            Paragraph(f"Quote Date: {obj.created_at.strftime('%d %B %Y')}", self.styles['Normal']),
-            Paragraph(f"Valid Until: {obj.valid_until.strftime('%d %B %Y') if obj.valid_until else 'N/A'}", self.styles['Normal']),
+            Paragraph(f"<b>QUOTE #</b><br/>{obj.reference}", self.styles['Normal']),
+            Paragraph(f"<b>QUOTE DATE</b><br/>{obj.created_at.strftime('%d/%m/%Y')}", self.styles['Normal']),
+            Paragraph(f"<b>VALID UNTIL</b><br/>Valid upon delivery", self.styles['Normal']),
         ]
 
     def _get_customer_info(self):
+        """Customer info (right column)."""
         obj = self.object
         return [
-            Paragraph("Customer:", self.styles['CompanyHeading']),
+            Paragraph("<b>BILL TO</b>", self.styles['CompanyHeading']),
             Paragraph(obj.customer.name, self.styles['Normal']),
             Paragraph(obj.customer.address or '', self.styles['Normal']),
             Paragraph(obj.customer.phone or '', self.styles['Normal']),
@@ -29,7 +31,26 @@ class QuotationPDFService(BasePDFService):
         obj = self.object
         currency = self.company_data['currency']
 
-        # ─── ITEMS TABLE ─────────────────────────────────────────────
+        # ─── Quote Details + Customer Info (side‑by‑side) ────
+        quote_details = self._get_document_info()
+        customer_details = self._get_customer_info()
+
+        info_data = [[
+            quote_details,
+            customer_details
+        ]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # ─── Items Table ──────────────────────────────────────
         data = [['QTY', 'Description', 'Unit Price', 'Amount']]
         total_amount = 0
 
@@ -37,16 +58,17 @@ class QuotationPDFService(BasePDFService):
             item_total = item.total
             total_amount += item_total
             data.append([
-                f"{item.quantity} {item.item.unit.symbol}",
+                f"{item.quantity}",
                 item.item.name,
                 f"{currency} {item.unit_price:.2f}",
                 f"{currency} {item_total:.2f}",
             ])
 
+        # Padding rows for consistent height
         while len(data) < 6:
             data.append(['', '', '', ''])
 
-        col_widths = [2.5*cm, 7*cm, 3.5*cm, 3.5*cm]
+        col_widths = [2*cm, 7*cm, 3.5*cm, 3.5*cm]
         table = Table(data, colWidths=col_widths)
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1E293B')),
@@ -67,7 +89,7 @@ class QuotationPDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION (Sales Tax removed) ──────────────────────
+        # ─── Totals ────────────────────────────────────────────
         subtotal = obj.total_amount
         discount = obj.discount_amount or 0
         grand_total = subtotal - discount
@@ -94,8 +116,10 @@ class QuotationPDFService(BasePDFService):
         ]))
         story.append(totals_table)
 
-        # ─── TERMS ────────────────────────────────────────────────────
+        # ─── Terms ──────────────────────────────────────────────
         story.append(Spacer(1, 0.5*cm))
-        story.append(Paragraph("Terms: This quotation is valid for 30 days.", self.styles['Normal']))
+        story.append(Paragraph("<b>TERMS & CONDITIONS</b>", self.styles['CompanyHeading']))
+        story.append(Paragraph("Payment is due upon delivery.", self.styles['Normal']))
+        story.append(Paragraph("All checks to be made out to the company name above.", self.styles['Normal']))
 
         return story

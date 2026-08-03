@@ -8,7 +8,6 @@ class GoodsReceiptPDFService(BasePDFService):
     document_type = 'goods_receipt'
 
     def _get_document_info(self):
-        """Return GRN-specific document info (left column)."""
         obj = self.object
         po = obj.purchase_order
         return [
@@ -18,7 +17,6 @@ class GoodsReceiptPDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return supplier info (right column)."""
         obj = self.object
         po = obj.purchase_order
         return [
@@ -32,16 +30,27 @@ class GoodsReceiptPDFService(BasePDFService):
         obj = self.object
         po = obj.purchase_order
 
-        # ─── ITEMS TABLE ─────────────────────────────────────────────
-        data = [['QTY', 'Description', 'Unit', 'Notes']]
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
 
-        for idx, item in enumerate(obj.items.all(), 1):
+        data = [['QTY', 'Description', 'Unit', 'Notes']]
+        for item in obj.items.all():
             data.append([
                 f"{item.quantity_received}",
                 item.purchase_order_item.item.name,
                 item.purchase_order_item.item.unit.symbol,
                 item.notes or '',
             ])
+        if len(data) == 1:
+            data.append(['', 'No items', '', ''])
 
         col_widths = [2.5*cm, 7*cm, 2.5*cm, 4.5*cm]
         table = Table(data, colWidths=col_widths)
@@ -62,7 +71,6 @@ class GoodsReceiptPDFService(BasePDFService):
         ]))
         story.append(table)
 
-        # ─── WAREHOUSE ────────────────────────────────────────────────
         story.append(Spacer(1, 0.5*cm))
         story.append(Paragraph(f"Warehouse: {po.delivery_warehouse.name}", self.styles['Normal']))
         if po.delivery_warehouse.location:

@@ -9,7 +9,6 @@ class InvoicePDFService(BasePDFService):
     document_type = 'invoice'
 
     def _get_document_info(self):
-        """Return invoice-specific document info (left column)."""
         obj = self.object
         return [
             Paragraph(f"Invoice #: {obj.reference}", self.styles['Normal']),
@@ -18,7 +17,6 @@ class InvoicePDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return customer info (right column)."""
         obj = self.object
         return [
             Paragraph("Bill To:", self.styles['CompanyHeading']),
@@ -32,21 +30,29 @@ class InvoicePDFService(BasePDFService):
         obj = self.object
         currency = self.company_data['currency']
 
-        # ─── ITEMS TABLE ─────────────────────────────────────────────
+        # Info table
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # Items table
         data = [['QTY', 'Description', 'Unit Price', 'Amount']]
         total_amount = 0
-
-        for idx, item in enumerate(obj.items.all(), 1):
-            item_total = item.total
-            total_amount += item_total
+        for item in obj.items.all():
+            total_amount += item.total
             data.append([
                 f"{item.quantity} {item.item.unit.symbol}",
                 item.item.name,
                 f"{currency} {item.unit_price:.2f}",
-                f"{currency} {item_total:.2f}",
+                f"{currency} {item.total:.2f}",
             ])
-
-        # Add empty rows if needed (minimum 5 rows for consistent height)
         while len(data) < 6:
             data.append(['', '', '', ''])
 
@@ -71,14 +77,11 @@ class InvoicePDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION (Sales Tax removed) ──────────────────────
+        # Totals
         subtotal = obj.total_amount
         discount = obj.sales_order.discount_amount if obj.sales_order else 0
         grand_total = subtotal - discount
-
-        totals_data = [
-            ['Subtotal', f"{currency} {subtotal:.2f}"],
-        ]
+        totals_data = [['Subtotal', f"{currency} {subtotal:.2f}"]]
         if discount > 0:
             totals_data.append(['Discount', f"{currency} {discount:.2f}"])
         totals_data.append(['Total', f"{currency} {grand_total:.2f}"])
@@ -97,10 +100,7 @@ class InvoicePDFService(BasePDFService):
             ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#E2E8F0')),
         ]))
         story.append(totals_table)
-
-        # ─── PAYMENT TERMS ────────────────────────────────────────────
         story.append(Spacer(1, 0.5*cm))
-        terms = get_setting('DEFAULT_PAYMENT_TERMS', 'Net 30')
-        story.append(Paragraph(f"Payment Terms: {terms}", self.styles['Normal']))
+        story.append(Paragraph(f"Payment Terms: {get_setting('DEFAULT_PAYMENT_TERMS', 'Net 30')}", self.styles['Normal']))
 
         return story

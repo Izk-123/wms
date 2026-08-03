@@ -8,7 +8,6 @@ class ReceiptPDFService(BasePDFService):
     document_type = 'receipt'
 
     def _get_document_info(self):
-        """Return receipt-specific document info (left column)."""
         payment = self.object
         return [
             Paragraph(f"Receipt #: {payment.receipt_number}", self.styles['Normal']),
@@ -17,7 +16,6 @@ class ReceiptPDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return customer info (right column)."""
         payment = self.object
         invoice = payment.invoice
         return [
@@ -32,18 +30,27 @@ class ReceiptPDFService(BasePDFService):
         payment = self.object
         invoice = payment.invoice
         currency = self.company_data['currency']
-
-        # Get receiver name – fallback to username if full name is empty
         receiver = payment.received_by.get_full_name() or payment.received_by.username
 
-        # ─── PAYMENT DETAILS ─────────────────────────────────────────
+        # Info table
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
+        # Payment details
         data = [
             ['Payment Method', payment.get_payment_method_display()],
             ['Amount Paid', f"{currency} {payment.amount:.2f}"],
             ['Balance Due', f"{currency} {invoice.balance_due:.2f}"],
             ['Received By', receiver],
         ]
-
         table = Table(data, colWidths=[5*cm, 8.5*cm])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.white),

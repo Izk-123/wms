@@ -29,20 +29,27 @@ class PurchaseOrderPDFService(BasePDFService):
         obj = self.object
         currency = self.company_data['currency']
 
-        # ─── ITEMS TABLE ─────────────────────────────────────────────
-        data = [['QTY', 'Description', 'Unit Cost', 'Total']]
-        total_amount = 0
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
 
-        for idx, item in enumerate(obj.items.all(), 1):
-            item_total = item.total_cost
-            total_amount += item_total
+        data = [['QTY', 'Description', 'Unit Cost', 'Total']]
+        total = 0
+        for item in obj.items.all():
+            total += item.total_cost
             data.append([
                 f"{item.quantity_ordered} {item.item.unit.symbol}",
                 item.item.name,
                 f"{currency} {item.unit_cost:.2f}",
-                f"{currency} {item_total:.2f}",
+                f"{currency} {item.total_cost:.2f}",
             ])
-
         while len(data) < 6:
             data.append(['', '', '', ''])
 
@@ -67,13 +74,10 @@ class PurchaseOrderPDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION (Sales Tax and Shipping removed; only Subtotal and Total) ──────
-        # We'll keep only Subtotal and Total, no tax, no shipping.
         totals_data = [
-            ['Subtotal', f"{currency} {total_amount:.2f}"],
-            ['Total', f"{currency} {total_amount:.2f}"],
+            ['Subtotal', f"{currency} {total:.2f}"],
+            ['Total', f"{currency} {total:.2f}"],
         ]
-
         totals_table = Table(totals_data, colWidths=[7*cm, 6.5*cm])
         totals_table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.white),
@@ -89,7 +93,6 @@ class PurchaseOrderPDFService(BasePDFService):
         ]))
         story.append(totals_table)
 
-        # ─── DELIVERY ADDRESS ────────────────────────────────────────
         story.append(Spacer(1, 0.5*cm))
         story.append(Paragraph(f"Delivery Warehouse: {obj.delivery_warehouse.name}", self.styles['Normal']))
         if obj.delivery_warehouse.location:

@@ -3,12 +3,12 @@ from reportlab.lib import colors
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, Spacer, Table, TableStyle
 from .base import BasePDFService
+from inventory.models import Stock
 
 class StockIssueVoucherPDFService(BasePDFService):
     document_type = 'stock_issue_voucher'
 
     def _get_document_info(self):
-        """Return voucher-specific document info (left column)."""
         obj = self.object
         return [
             Paragraph(f"Voucher #: {obj.reference or obj.pk}", self.styles['Normal']),
@@ -17,7 +17,6 @@ class StockIssueVoucherPDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return item info (right column)."""
         obj = self.object
         return [
             Paragraph("Item Details:", self.styles['CompanyHeading']),
@@ -29,18 +28,24 @@ class StockIssueVoucherPDFService(BasePDFService):
 
     def build_body(self, story):
         obj = self.object
-
-        # Show remaining stock
-        from inventory.models import Stock
         stock = Stock.objects.filter(item=obj.item, warehouse=obj.warehouse).first()
 
-        # ─── STOCK DETAILS ───────────────────────────────────────────
+        info_data = [[self._get_document_info(), self._get_customer_info()]]
+        info_table = Table(info_data, colWidths=[8*cm, 8*cm])
+        info_table.setStyle(TableStyle([
+            ('VALIGN', (0,0), (-1,-1), 'TOP'),
+            ('LEFTPADDING', (0,0), (0,0), 0),
+            ('RIGHTPADDING', (1,0), (1,0), 0),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+        ]))
+        story.append(info_table)
+        story.append(Spacer(1, 0.5*cm))
+
         data = [
             ['Reference', obj.reference or 'N/A'],
             ['Notes', obj.notes or 'N/A'],
             ['Remaining Stock', f"{stock.quantity} {obj.item.unit.symbol}" if stock else 'N/A'],
         ]
-
         table = Table(data, colWidths=[3.5*cm, 10*cm])
         table.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,-1), colors.white),
