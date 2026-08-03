@@ -71,18 +71,17 @@ class InvoicePDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION ──────────────────────────────────────────
+        # ─── TOTALS SECTION (Sales Tax removed) ──────────────────────
         subtotal = obj.total_amount
         discount = obj.sales_order.discount_amount if obj.sales_order else 0
-        tax = 0  # Tax not implemented yet
         grand_total = subtotal - discount
 
         totals_data = [
             ['Subtotal', f"{currency} {subtotal:.2f}"],
-            ['Sales Tax (5%)', f"{currency} {tax:.2f}"],
-            ['Discount', f"{currency} {discount:.2f}"],
-            ['Total', f"{currency} {grand_total:.2f}"],
         ]
+        if discount > 0:
+            totals_data.append(['Discount', f"{currency} {discount:.2f}"])
+        totals_data.append(['Total', f"{currency} {grand_total:.2f}"])
 
         totals_table = Table(totals_data, colWidths=[7*cm, 6.5*cm])
         totals_table.setStyle(TableStyle([

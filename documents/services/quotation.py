@@ -8,7 +8,6 @@ class QuotationPDFService(BasePDFService):
     document_type = 'quotation'
 
     def _get_document_info(self):
-        """Return quotation-specific document info (left column)."""
         obj = self.object
         return [
             Paragraph(f"Quote #: {obj.reference}", self.styles['Normal']),
@@ -17,7 +16,6 @@ class QuotationPDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return customer info (right column)."""
         obj = self.object
         return [
             Paragraph("Customer:", self.styles['CompanyHeading']),
@@ -45,7 +43,6 @@ class QuotationPDFService(BasePDFService):
                 f"{currency} {item_total:.2f}",
             ])
 
-        # Add empty rows if needed
         while len(data) < 6:
             data.append(['', '', '', ''])
 
@@ -70,18 +67,17 @@ class QuotationPDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION ──────────────────────────────────────────
+        # ─── TOTALS SECTION (Sales Tax removed) ──────────────────────
         subtotal = obj.total_amount
         discount = obj.discount_amount or 0
-        tax = 0
         grand_total = subtotal - discount
 
         totals_data = [
             ['Subtotal', f"{currency} {subtotal:.2f}"],
-            ['Sales Tax (5%)', f"{currency} {tax:.2f}"],
-            ['Discount', f"{currency} {discount:.2f}"],
-            ['Total', f"{currency} {grand_total:.2f}"],
         ]
+        if discount > 0:
+            totals_data.append(['Discount', f"{currency} {discount:.2f}"])
+        totals_data.append(['Total', f"{currency} {grand_total:.2f}"])
 
         totals_table = Table(totals_data, colWidths=[7*cm, 6.5*cm])
         totals_table.setStyle(TableStyle([

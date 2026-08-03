@@ -8,7 +8,6 @@ class PurchaseOrderPDFService(BasePDFService):
     document_type = 'purchase_order'
 
     def _get_document_info(self):
-        """Return purchase order-specific document info (left column)."""
         obj = self.object
         return [
             Paragraph(f"PO #: {obj.reference}", self.styles['Normal']),
@@ -17,7 +16,6 @@ class PurchaseOrderPDFService(BasePDFService):
         ]
 
     def _get_customer_info(self):
-        """Return supplier info (right column)."""
         obj = self.object
         return [
             Paragraph("Supplier:", self.styles['CompanyHeading']),
@@ -45,7 +43,6 @@ class PurchaseOrderPDFService(BasePDFService):
                 f"{currency} {item_total:.2f}",
             ])
 
-        # Add empty rows if needed
         while len(data) < 6:
             data.append(['', '', '', ''])
 
@@ -70,11 +67,10 @@ class PurchaseOrderPDFService(BasePDFService):
         story.append(table)
         story.append(Spacer(1, 0.5*cm))
 
-        # ─── TOTALS SECTION ──────────────────────────────────────────
+        # ─── TOTALS SECTION (Sales Tax and Shipping removed; only Subtotal and Total) ──────
+        # We'll keep only Subtotal and Total, no tax, no shipping.
         totals_data = [
             ['Subtotal', f"{currency} {total_amount:.2f}"],
-            ['Sales Tax (5%)', f"{currency} 0.00"],
-            ['Shipping', f"{currency} 0.00"],
             ['Total', f"{currency} {total_amount:.2f}"],
         ]
 
